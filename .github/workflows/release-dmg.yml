@@ -1,0 +1,76 @@
+name: Release macOS DMG
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-dmg:
+    name: Build and publish DMG
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build release app bundle
+        env:
+          SCHEME: AgentAppFlow
+          DERIVED_DATA: build/DerivedData
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package DMG
+        env:
+          VERSION: ${{ github.ref_name }}
+          APP_PATH: build/DerivedData/Build/Products/Release/AgentAppFlow.app
+        run: |
+          set -euo pipefail
+          test -d "$APP_PATH"
+
+          STAGE_DIR="dist/stage"
+          DMG_PATH="dist/AgentAppFlow-${VERSION}.dmg"
+          mkdir -p "$STAGE_DIR"
+          cp -R "$APP_PATH" "$STAGE_DIR/AgentAppFlow.app"
+          ln -s /Applications "$STAGE_DIR/Applications"
+
+          hdiutil create \
+            -volname "AgentAppFlow ${VERSION}" \
+            -srcfolder "$STAGE_DIR" \
+            -ov \
+            -format UDZO \
+            "$DMG_PATH"
+
+          shasum -a 256 "$DMG_PATH" > dist/SHA256SUMS.txt
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgentAppFlow-${{ github.ref_name }}
+          path: |
+            dist/*.dmg
+            dist/SHA256SUMS.txt
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.dmg
+            dist/SHA256SUMS.txt
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
