@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-private enum SetupStage: Int, CaseIterable, Identifiable {
+enum SetupStage: Int, CaseIterable, Identifiable {
     case intro
     case repository
     case projectName
@@ -60,6 +60,34 @@ private enum SetupStage: Int, CaseIterable, Identifiable {
         }
     }
 
+    var interactiveAccessibilityLabels: [String] {
+        switch self {
+        case .intro:
+            ["Next"]
+        case .repository:
+            [SetupAccessibilityLabel.repositoryPath, "Browse", "Back", "Next"]
+        case .projectName:
+            [SetupAccessibilityLabel.projectName, SetupAccessibilityLabel.projectBrief, "Back", "Next"]
+        case .projectType:
+            ProjectType.allCases.map(\.displayName) + ["Back", "Next"]
+        case .platforms:
+            PlatformChoice.allCases.map(\.displayName) + ["Back", "Next"]
+        case .agentTool:
+            AgentToolChoice.allCases.map(\.displayName) + ["Back", "Next"]
+        case .approval:
+            ApprovalMode.allCases.map(\.displayName) + ["Back", "Next"]
+        case .improvement:
+            ImprovementMode.allCases.map(\.displayName) + ["Back", "Next"]
+        case .launch:
+            ["Back", "Initialize"]
+        }
+    }
+}
+
+enum SetupAccessibilityLabel {
+    static let repositoryPath = "Repository path"
+    static let projectName = "Project name"
+    static let projectBrief = "Project brief"
 }
 
 struct FirstRunSetupView: View {
@@ -73,6 +101,16 @@ struct FirstRunSetupView: View {
     @State private var errorMessage: String?
     @State private var isInitializing = false
 
+    init(
+        runtimeService: AgentRuntimeServing,
+        initialStage: SetupStage = .intro,
+        completeInitialSetup: @escaping (String) -> Void
+    ) {
+        self.runtimeService = runtimeService
+        self.completeInitialSetup = completeInitialSetup
+        _currentStage = State(initialValue: initialStage)
+    }
+
     private var stepNumber: Int {
         currentStage.rawValue + 1
     }
@@ -81,7 +119,7 @@ struct FirstRunSetupView: View {
         ZStack {
             AppBackground()
 
-            VStack(alignment: .leading, spacing: 28) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.xxl) {
                 SetupStepHeader(
                     stepNumber: stepNumber,
                     totalSteps: SetupStage.allCases.count,
@@ -106,9 +144,9 @@ struct FirstRunSetupView: View {
                     openWorkspace: openWorkspace
                 )
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 54)
-            .padding(.bottom, 24)
+            .padding(.horizontal, AppTheme.Spacing.xxl)
+            .padding(.top, AppTheme.Spacing.xxxl + AppTheme.Spacing.md)
+            .padding(.bottom, AppTheme.Spacing.section)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(
@@ -238,7 +276,7 @@ private struct SetupStepHeader: View {
     let prompt: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.compact) {
             Text("Step \(stepNumber) / \(totalSteps)")
                 .font(Font.brutalMeta())
                 .foregroundStyle(.secondary)
@@ -261,19 +299,20 @@ private struct SetupStepMeter: View {
     let totalSteps: Int
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: AppTheme.Spacing.xs) {
             ForEach(0..<totalSteps, id: \.self) { index in
                 Capsule()
                     .fill(index < stepNumber ? Color.primary : Color.primary.opacity(0.14))
-                    .frame(height: 5)
+                    .frame(height: AppTheme.Spacing.xxs + 1)
             }
         }
+        .accessibilityHidden(true)
     }
 }
 
 private struct IntroStageView: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.xl) {
             Text("Wire one repo.\nGive it memory.\nKeep it local.")
                 .font(Font.brutalHero(42))
                 .lineSpacing(-2)
@@ -283,7 +322,7 @@ private struct IntroStageView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 12) {
+            HStack(spacing: AppTheme.Spacing.compact) {
                 SetupSpotlightCard(
                     eyebrow: "LOCAL",
                     title: "Repo-owned memory",
@@ -296,7 +335,7 @@ private struct IntroStageView: View {
                 )
             }
 
-            VStack(spacing: 10) {
+            VStack(spacing: AppTheme.Spacing.sm) {
                 SetupFactRow(label: "NOW", value: "Create the first local contract for the repo you are about to steer.")
                 SetupFactRow(label: "LATER", value: "Rust stays reserved for guarded execution once the framework is live.")
             }
@@ -310,7 +349,7 @@ private struct SetupSpotlightCard: View {
     let copy: String
 
     var bodyView: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.compact) {
             Text(eyebrow)
                 .font(Font.brutalMeta())
                 .foregroundStyle(.secondary)
@@ -325,7 +364,7 @@ private struct SetupSpotlightCard: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
+        .padding(AppTheme.Spacing.lg)
         .background(BrutalInset(selected: true))
     }
 
@@ -337,7 +376,7 @@ private struct SetupFactRow: View {
     let value: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .top, spacing: AppTheme.Spacing.md) {
             Text(label)
                 .font(Font.brutalMeta())
                 .frame(width: 74, alignment: .leading)
@@ -346,7 +385,7 @@ private struct SetupFactRow: View {
                 .font(Font.brutalBody(15, weight: .semibold))
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(16)
+        .padding(AppTheme.Spacing.regular)
         .background(BrutalInset())
     }
 }
@@ -356,18 +395,19 @@ private struct RepositoryStageView: View {
     let chooseRepositoryPath: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
             Text("Select a git repository folder.")
                 .font(Font.brutalTitle(21, weight: .black))
 
             SetupRepoTargetCard(projectPath: projectPath)
 
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.compact) {
                 AppTextField(
                     title: nil,
                     prompt: "Repository path",
                     text: $projectPath,
-                    usesMonospaceFont: true
+                    usesMonospaceFont: true,
+                    accessibilityLabel: SetupAccessibilityLabel.repositoryPath
                 )
 
                 AppButton("Browse", variant: .primary, action: chooseRepositoryPath)
@@ -380,7 +420,7 @@ private struct SetupRepoTargetCard: View {
     let projectPath: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
             Text("Target Repo")
                 .font(Font.brutalMeta())
                 .foregroundStyle(.secondary)
@@ -395,7 +435,7 @@ private struct SetupRepoTargetCard: View {
                 .font(Font.brutalBody(14, weight: .semibold))
                 .foregroundStyle(.secondary)
         }
-        .padding(20)
+        .padding(AppTheme.Spacing.relaxed)
         .background(BrutalInset(selected: !projectPath.isEmpty))
     }
 
@@ -416,14 +456,15 @@ private struct ProjectNameStageView: View {
     @Binding var projectDescription: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
             Text("How should the workspace be named?")
                 .font(Font.brutalTitle(21, weight: .black))
 
             AppTextField(
                 title: nil,
                 prompt: "LegalPocketAI",
-                text: $projectName
+                text: $projectName,
+                accessibilityLabel: SetupAccessibilityLabel.projectName
             )
 
             SetupIdentityCard(
@@ -442,8 +483,8 @@ private struct SetupIdentityCard: View {
     @Binding var projectDescription: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.relaxed) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.xxs * 2) {
                 Text("AI Context")
                     .font(Font.brutalMeta())
                     .foregroundStyle(.secondary)
@@ -459,7 +500,7 @@ private struct SetupIdentityCard: View {
                     .foregroundStyle(.secondary)
             }
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
                 Text("Prompt (optional)")
                     .font(Font.brutalMeta())
                     .foregroundStyle(.secondary)
@@ -470,7 +511,8 @@ private struct SetupIdentityCard: View {
                     prompt: "Example: Building an iOS legal assistant that analyzes contracts locally, keeps project memory inside the repo, and optimizes codex and claude workflows around legal review.",
                     text: $projectDescription,
                     minHeight: 112,
-                    maxHeight: editorHeight
+                    maxHeight: editorHeight,
+                    accessibilityLabel: SetupAccessibilityLabel.projectBrief
                 )
             }
 
@@ -481,7 +523,7 @@ private struct SetupIdentityCard: View {
         }
         .frame(maxWidth: .infinity, maxHeight: cardHeight, alignment: .topLeading)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(22)
+        .padding(AppTheme.Spacing.xl)
         .background(BrutalInset(selected: !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
     }
 
@@ -492,7 +534,7 @@ private struct SetupIdentityCard: View {
 
     private var cardHeight: CGFloat {
         availableHeight
-            .advanced(by: -88)
+            .advanced(by: -(AppTheme.Spacing.xxxl + AppTheme.Spacing.xxl + AppTheme.Spacing.relaxed))
             .clamped(to: 300...410)
     }
 
@@ -506,7 +548,7 @@ private struct SetupInlineGuidanceCard: View {
     let value: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .top, spacing: AppTheme.Spacing.md) {
             Text(label)
                 .font(Font.brutalMeta())
                 .foregroundStyle(.secondary)
@@ -516,13 +558,13 @@ private struct SetupInlineGuidanceCard: View {
                 .font(Font.brutalBody(15, weight: .semibold))
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, AppTheme.Spacing.regular)
+        .padding(.vertical, AppTheme.Spacing.md)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
                 .fill(Color.primary.opacity(0.04))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
                         .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
                 )
         )
@@ -647,10 +689,10 @@ private struct LaunchStageView: View {
     let errorMessage: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
             SetupLaunchHero(formState: formState)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
                 SetupFactRow(label: "PATH", value: formState.projectPath)
                 SetupFactRow(label: "AGENT", value: formState.selectedAgentTools.map(\.displayName).sorted().joined(separator: " + "))
                 SetupFactRow(label: "PLAT", value: formState.selectedPlatforms.map(\.displayName).sorted().joined(separator: " + "))
@@ -666,7 +708,7 @@ private struct LaunchStageView: View {
             }
 
             if let commandResult {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.compact) {
                     Text("Created")
                         .font(Font.brutalMeta(12, weight: .black))
                         .textCase(.uppercase)
@@ -691,7 +733,7 @@ private struct LaunchStageView: View {
                         }
                     }
                 }
-                .padding(16)
+                .padding(AppTheme.Spacing.regular)
                 .background(BrutalInset())
             }
 
@@ -708,16 +750,17 @@ private struct SetupLaunchHero: View {
     let formState: OnboardingFormState
 
     var body: some View {
-        HStack(spacing: 18) {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+        HStack(spacing: AppTheme.Spacing.lg) {
+            RoundedRectangle(cornerRadius: AppTheme.Radius.xl, style: .continuous)
                 .fill(.thinMaterial)
                 .overlay(
                     Image(systemName: "play.circle.fill")
                         .font(.system(size: 34, weight: .black))
                 )
                 .frame(width: 104, height: 104)
+                .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
                 Text("Ready to initialize")
                     .font(Font.brutalMeta())
                     .foregroundStyle(.secondary)
@@ -729,7 +772,7 @@ private struct SetupLaunchHero: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(20)
+        .padding(AppTheme.Spacing.relaxed)
         .background(BrutalInset(selected: true))
     }
 }
@@ -745,7 +788,7 @@ private struct SetupFooter: View {
     let openWorkspace: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: AppTheme.Spacing.sm) {
             if currentStage != .intro {
                 AppButton("Back", variant: .secondary, action: goBack)
             }
@@ -783,11 +826,11 @@ private struct SetupChoiceGrid<Content: View>: View {
     @ViewBuilder let content: Content
 
     private let columns = [
-        GridItem(.adaptive(minimum: 220, maximum: 360), spacing: 12)
+        GridItem(.adaptive(minimum: 220, maximum: 360), spacing: AppTheme.Spacing.compact)
     ]
 
     var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: AppTheme.Spacing.compact) {
             content
         }
     }
@@ -808,15 +851,16 @@ private struct SetupChoiceCard: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
                 HStack(alignment: .top) {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
                         .fill(.thinMaterial)
                         .overlay(
                             Image(systemName: symbolName)
                                 .font(.system(size: 18, weight: .black))
                         )
-                        .frame(width: 44, height: 44)
+                        .frame(width: AppTheme.Layout.minimumTapTarget, height: AppTheme.Layout.minimumTapTarget)
+                        .accessibilityHidden(true)
 
                     Spacer()
 
@@ -826,7 +870,7 @@ private struct SetupChoiceCard: View {
                     )
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
                     Text(title)
                         .font(Font.brutalTitle(18, weight: .black))
                     Text(subtitle)
@@ -836,10 +880,14 @@ private struct SetupChoiceCard: View {
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 154, alignment: .topLeading)
-            .padding(18)
+            .padding(AppTheme.Spacing.lg)
             .background(BrutalInset(selected: isSelected))
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+        .accessibilityHint(subtitle)
     }
 }
 
@@ -868,5 +916,6 @@ private struct SetupSelectionIndicator: View {
                     )
             }
         }
+        .accessibilityHidden(true)
     }
 }

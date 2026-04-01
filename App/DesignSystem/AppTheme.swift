@@ -110,9 +110,13 @@ enum AppTheme {
         static let xxs: CGFloat = 4
         static let xs: CGFloat = 6
         static let sm: CGFloat = 10
+        static let compact: CGFloat = 12
         static let md: CGFloat = 14
+        static let regular: CGFloat = 16
         static let lg: CGFloat = 18
+        static let relaxed: CGFloat = 20
         static let xl: CGFloat = 22
+        static let section: CGFloat = 24
         static let xxl: CGFloat = 28
         static let xxxl: CGFloat = 40
     }

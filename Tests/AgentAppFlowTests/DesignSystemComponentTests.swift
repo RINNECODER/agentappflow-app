@@ -50,6 +50,20 @@ final class DesignSystemComponentTests: XCTestCase {
 
         XCTAssertGreaterThanOrEqual(size.height, AppTheme.Layout.minimumTapTarget)
     }
+
+    func testOnboardingStagesDeclareVoiceOverLabelsForInteractiveControls() {
+        for stage in SetupStage.allCases {
+            let labels = stage.interactiveAccessibilityLabels
+            let unlabeled = labels.filter { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            let unlabeledDescription = unlabeled.joined(separator: ", ")
+
+            XCTAssertFalse(labels.isEmpty, "Expected accessibility labels in stage \(stage.title).")
+            XCTAssertTrue(
+                unlabeled.isEmpty,
+                "Missing VoiceOver labels in stage \(stage.title): \(unlabeledDescription)"
+            )
+        }
+    }
 }
 
 private struct DesignSystemGallery: View {

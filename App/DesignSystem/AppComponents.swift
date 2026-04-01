@@ -212,7 +212,7 @@ struct AppButton<Label: View>: View {
             variant: variant,
             isLoading: isLoading,
             isDisabled: isDisabled,
-            accessibilityLabel: accessibilityLabel,
+            accessibilityLabel: accessibilityLabel ?? title,
             action: action
         ) {
             Text(title)
@@ -418,6 +418,7 @@ struct AppTextField: View {
     @Binding var text: String
     var state: AppFieldState = .normal
     var usesMonospaceFont = false
+    var accessibilityLabel: String?
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -447,6 +448,7 @@ struct AppTextField: View {
                     RoundedRectangle(cornerRadius: AppTheme.Radius.xl - 4, style: .continuous)
                         .strokeBorder(stateColor, lineWidth: stateBorderWidth)
                 )
+                .accessibilityLabel(accessibilityLabel ?? title ?? prompt)
 
             if let message = state.message {
                 Text(message)
@@ -495,6 +497,7 @@ struct AppTextArea: View {
     var state: AppFieldState = .normal
     var minHeight: CGFloat = 112
     var maxHeight: CGFloat = 168
+    var accessibilityLabel: String?
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -529,6 +532,7 @@ struct AppTextArea: View {
                     RoundedRectangle(cornerRadius: AppTheme.Radius.xl, style: .continuous)
                         .strokeBorder(stateColor, lineWidth: stateBorderWidth)
                 )
+                .accessibilityLabel(accessibilityLabel ?? title ?? prompt)
 
             if let message = state.message {
                 Text(message)
