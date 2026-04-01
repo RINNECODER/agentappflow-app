@@ -44,7 +44,7 @@ private enum SetupStage: Int, CaseIterable, Identifiable {
         case .repository:
             "Point AgentAppFlow at the repository you want to wire first."
         case .projectName:
-            "Name the project the way the control center should frame it."
+            "Name the workspace and describe what the AI should understand on first contact."
         case .projectType:
             "Pick the base shape for the framework contract."
         case .platforms:
@@ -60,39 +60,16 @@ private enum SetupStage: Int, CaseIterable, Identifiable {
         }
     }
 
-    var symbolName: String {
-        switch self {
-        case .intro:
-            "sparkles.rectangle.stack"
-        case .repository:
-            "folder.badge.plus"
-        case .projectName:
-            "textformat.alt"
-        case .projectType:
-            "square.stack.3d.up"
-        case .platforms:
-            "square.grid.3x3"
-        case .agentTool:
-            "bolt.horizontal.circle"
-        case .approval:
-            "lock.shield"
-        case .improvement:
-            "arrow.triangle.2.circlepath"
-        case .launch:
-            "play.circle"
-        }
-    }
 }
 
 struct FirstRunSetupView: View {
-    let completeInitialSetup: (WorkspaceSnapshot) -> Void
-
-    private let bootstrapService = BootstrapCLIService()
+    let runtimeService: AgentRuntimeServing
+    let completeInitialSetup: (String) -> Void
 
     @State private var currentStage: SetupStage = .intro
     @State private var formState = OnboardingFormState()
     @State private var commandResult: BootstrapCommandResult?
-    @State private var initializedSnapshot: WorkspaceSnapshot?
+    @State private var registeredProject: RegisteredProject?
     @State private var errorMessage: String?
     @State private var isInitializing = false
 
@@ -102,26 +79,27 @@ struct FirstRunSetupView: View {
 
     var body: some View {
         ZStack {
-            AgentAppFlowBackdrop()
+            AppBackground()
 
             VStack(alignment: .leading, spacing: 28) {
                 SetupStepHeader(
                     stepNumber: stepNumber,
                     totalSteps: SetupStage.allCases.count,
                     title: currentStage.title,
-                    prompt: currentStage.prompt,
-                    symbolName: currentStage.symbolName
+                    prompt: currentStage.prompt
                 )
 
-                stageContent
-
-                Spacer(minLength: 0)
+                GeometryReader { geometry in
+                    stageContent(availableHeight: geometry.size.height)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 SetupFooter(
                     currentStage: currentStage,
                     canContinue: canContinue,
                     isInitializing: isInitializing,
-                    didSucceed: initializedSnapshot != nil,
+                    didSucceed: registeredProject != nil,
                     goBack: goBack,
                     goForward: goForward,
                     initializeProject: initializeProject,
@@ -133,11 +111,14 @@ struct FirstRunSetupView: View {
             .padding(.bottom, 24)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(minWidth: 560, minHeight: 520)
+        .frame(
+            minWidth: AppTheme.Layout.setupMinSize.width,
+            minHeight: AppTheme.Layout.setupMinSize.height
+        )
     }
 
     @ViewBuilder
-    private var stageContent: some View {
+    private func stageContent(availableHeight: CGFloat) -> some View {
         switch currentStage {
         case .intro:
             IntroStageView()
@@ -147,7 +128,11 @@ struct FirstRunSetupView: View {
                 chooseRepositoryPath: chooseProjectPath
             )
         case .projectName:
-            ProjectNameStageView(projectName: $formState.projectName)
+            ProjectNameStageView(
+                availableHeight: availableHeight,
+                projectName: $formState.projectName,
+                projectDescription: $formState.projectDescription
+            )
         case .projectType:
             ProjectTypeStageView(selection: $formState.projectType)
         case .platforms:
@@ -187,7 +172,7 @@ struct FirstRunSetupView: View {
         case .improvement:
             true
         case .launch:
-            initializedSnapshot != nil
+            registeredProject != nil
         }
     }
 
@@ -219,7 +204,7 @@ struct FirstRunSetupView: View {
     private func initializeProject() async {
         errorMessage = nil
         commandResult = nil
-        initializedSnapshot = nil
+        registeredProject = nil
         isInitializing = true
 
         defer {
@@ -228,17 +213,21 @@ struct FirstRunSetupView: View {
 
         do {
             let request = try formState.makeRequest()
-            let result = try await bootstrapService.bootstrap(request: request)
+            let result = try await runtimeService.bootstrap(request: request, force: false)
+            let project = try await runtimeService.registerProject(
+                request: request,
+                bootstrapResult: result
+            )
             commandResult = result
-            initializedSnapshot = WorkspaceSnapshot.from(request: request, result: result)
+            registeredProject = project
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
     private func openWorkspace() {
-        guard let initializedSnapshot else { return }
-        completeInitialSetup(initializedSnapshot)
+        guard let registeredProject else { return }
+        completeInitialSetup(registeredProject.id)
     }
 }
 
@@ -247,40 +236,22 @@ private struct SetupStepHeader: View {
     let totalSteps: Int
     let title: String
     let prompt: String
-    let symbolName: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 20) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Step \(stepNumber) / \(totalSteps)")
-                    .font(Font.brutalMeta())
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Step \(stepNumber) / \(totalSteps)")
+                .font(Font.brutalMeta())
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
 
-                Text(title)
-                    .font(Font.brutalHero(30))
+            Text(title)
+                .font(Font.brutalHero(30))
 
-                Text(prompt)
-                    .font(Font.brutalBody(15))
-                    .foregroundStyle(.secondary)
+            Text(prompt)
+                .font(Font.brutalBody(15))
+                .foregroundStyle(.secondary)
 
-                SetupStepMeter(stepNumber: stepNumber, totalSteps: totalSteps)
-            }
-
-            Spacer(minLength: 0)
-
-            ZStack {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(.thinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(Color.white.opacity(0.06))
-                    )
-                    .frame(width: 94, height: 94)
-
-                Image(systemName: symbolName)
-                    .font(.system(size: 28, weight: .black))
-            }
+            SetupStepMeter(stepNumber: stepNumber, totalSteps: totalSteps)
         }
     }
 }
@@ -392,15 +363,14 @@ private struct RepositoryStageView: View {
             SetupRepoTargetCard(projectPath: projectPath)
 
             VStack(alignment: .leading, spacing: 12) {
-                TextField("Repository path", text: $projectPath)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 15, weight: .medium, design: .monospaced))
-                    .padding(.horizontal, 16)
-                    .frame(height: 54)
-                    .background(BrutalInset())
+                AppTextField(
+                    title: nil,
+                    prompt: "Repository path",
+                    text: $projectPath,
+                    usesMonospaceFont: true
+                )
 
-                Button("Browse", action: chooseRepositoryPath)
-                    .buttonStyle(BrutalButtonStyle(inverted: true))
+                AppButton("Browse", variant: .primary, action: chooseRepositoryPath)
             }
         }
     }
@@ -441,53 +411,77 @@ private struct SetupRepoTargetCard: View {
 }
 
 private struct ProjectNameStageView: View {
+    let availableHeight: CGFloat
     @Binding var projectName: String
+    @Binding var projectDescription: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("How should the workspace be named?")
                 .font(Font.brutalTitle(21, weight: .black))
 
-            TextField("LegalPocketAI", text: $projectName)
-                .textFieldStyle(.plain)
-                .font(Font.brutalTitle(18, weight: .black))
-                .padding(.horizontal, 16)
-                .frame(height: 58)
-                .background(BrutalInset())
+            AppTextField(
+                title: nil,
+                prompt: "LegalPocketAI",
+                text: $projectName
+            )
 
-            SetupNamePreviewCard(projectName: projectName)
+            SetupIdentityCard(
+                availableHeight: availableHeight,
+                projectName: projectName,
+                projectDescription: $projectDescription
+            )
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
 
-private struct SetupNamePreviewCard: View {
+private struct SetupIdentityCard: View {
+    let availableHeight: CGFloat
     let projectName: String
+    @Binding var projectDescription: String
 
     var body: some View {
-        HStack(spacing: 18) {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.thinMaterial)
-                .overlay(
-                    Text(monogram)
-                        .font(Font.brutalHero(24))
-                )
-                .frame(width: 92, height: 92)
-
+        VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Control Center Preview")
+                Text("AI Context")
                     .font(Font.brutalMeta())
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
+
                 Text(displayName)
                     .font(Font.brutalHero(32))
                     .lineLimit(2)
                     .minimumScaleFactor(0.75)
-                Text("This title anchors the workspace shell after the first launch.")
+
+                Text("Give the framework a compact brief so the generated repo memory starts with real project context.")
                     .font(Font.brutalBody(14, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Prompt (optional)")
+                    .font(Font.brutalMeta())
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+
+                AppTextArea(
+                    title: nil,
+                    prompt: "Example: Building an iOS legal assistant that analyzes contracts locally, keeps project memory inside the repo, and optimizes codex and claude workflows around legal review.",
+                    text: $projectDescription,
+                    minHeight: 112,
+                    maxHeight: editorHeight
+                )
+            }
+
+            SetupInlineGuidanceCard(
+                label: "USE",
+                value: "Include the product goal, target user, repo focus, constraints, and what makes this project specific."
+            )
         }
-        .padding(18)
+        .frame(maxWidth: .infinity, maxHeight: cardHeight, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(22)
         .background(BrutalInset(selected: !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
     }
 
@@ -496,10 +490,48 @@ private struct SetupNamePreviewCard: View {
         return trimmed.isEmpty ? "Untitled Workspace" : trimmed
     }
 
-    private var monogram: String {
-        let words = displayName.split(separator: " ").prefix(2)
-        let initials = words.compactMap(\.first).map { String($0) }.joined()
-        return initials.isEmpty ? "AF" : initials.uppercased()
+    private var cardHeight: CGFloat {
+        availableHeight
+            .advanced(by: -88)
+            .clamped(to: 300...410)
+    }
+
+    private var editorHeight: CGFloat {
+        (cardHeight * 0.40).clamped(to: 112...168)
+    }
+}
+
+private struct SetupInlineGuidanceCard: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Text(label)
+                .font(Font.brutalMeta())
+                .foregroundStyle(.secondary)
+                .frame(width: 74, alignment: .leading)
+
+            Text(value)
+                .font(Font.brutalBody(15, weight: .semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.primary.opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+        )
+    }
+}
+
+private extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
     }
 }
 
@@ -623,6 +655,9 @@ private struct LaunchStageView: View {
                 SetupFactRow(label: "AGENT", value: formState.selectedAgentTools.map(\.displayName).sorted().joined(separator: " + "))
                 SetupFactRow(label: "PLAT", value: formState.selectedPlatforms.map(\.displayName).sorted().joined(separator: " + "))
                 SetupFactRow(label: "MODE", value: "\(formState.approvalMode.displayName) / \(formState.improvementMode.displayName)")
+                if !formState.projectDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    SetupFactRow(label: "BRIEF", value: formState.projectDescription)
+                }
             }
 
             if isInitializing {
@@ -642,8 +677,8 @@ private struct LaunchStageView: View {
                             .font(.system(size: 13, weight: .medium, design: .monospaced))
                     }
 
-                    if !commandResult.skipped.isEmpty {
-                        Divider()
+                if !commandResult.skipped.isEmpty {
+                        AppDivider()
                         Text("Skipped")
                             .font(Font.brutalMeta(12, weight: .black))
                             .textCase(.uppercase)
@@ -712,8 +747,7 @@ private struct SetupFooter: View {
     var body: some View {
         HStack(spacing: 10) {
             if currentStage != .intro {
-                Button("Back", action: goBack)
-                    .buttonStyle(BrutalButtonStyle(inverted: false))
+                AppButton("Back", variant: .secondary, action: goBack)
             }
 
             Spacer()
@@ -721,27 +755,25 @@ private struct SetupFooter: View {
             switch currentStage {
             case .launch:
                 if didSucceed {
-                    Button("Open Control Center", action: openWorkspace)
-                        .buttonStyle(BrutalButtonStyle(inverted: true))
+                    AppButton("Open Control Center", variant: .primary, action: openWorkspace)
                 } else {
-                    Button {
-                        Task { await initializeProject() }
-                    } label: {
-                        if isInitializing {
-                            ProgressView()
-                                .controlSize(.small)
-                                .frame(width: 18, height: 18)
-                        } else {
-                            Text("Initialize")
+                    AppButton(
+                        "Initialize",
+                        variant: .primary,
+                        isLoading: isInitializing,
+                        isDisabled: isInitializing,
+                        action: {
+                            Task { await initializeProject() }
                         }
-                    }
-                    .buttonStyle(BrutalButtonStyle(inverted: true))
-                    .disabled(isInitializing)
+                    )
                 }
             default:
-                Button("Next", action: goForward)
-                    .buttonStyle(BrutalButtonStyle(inverted: true))
-                    .disabled(!canContinue)
+                AppButton(
+                    "Next",
+                    variant: .primary,
+                    isDisabled: !canContinue,
+                    action: goForward
+                )
             }
         }
     }
@@ -836,93 +868,5 @@ private struct SetupSelectionIndicator: View {
                     )
             }
         }
-    }
-}
-
-private struct BrutalInset: View {
-    var selected: Bool = false
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(.thinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(fillColor)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(strokeColor, lineWidth: selected ? 1.5 : 1)
-            )
-    }
-
-    private var fillColor: Color {
-        if colorScheme == .dark {
-            return selected ? Color.white.opacity(0.10) : Color.white.opacity(0.04)
-        }
-        return selected ? Color.white.opacity(0.38) : Color.white.opacity(0.20)
-    }
-
-    private var strokeColor: Color {
-        if selected {
-            return Color.primary
-        }
-        return colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
-    }
-}
-
-struct BrutalButtonStyle: ButtonStyle {
-    let inverted: Bool
-    @Environment(\.colorScheme) private var colorScheme
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(Font.brutalTitle(14, weight: .black))
-            .foregroundStyle(foregroundColor)
-            .frame(height: 46)
-            .padding(.horizontal, 18)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(inverted ? AnyShapeStyle(backgroundColor(configuration: configuration)) : AnyShapeStyle(.thinMaterial))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(inverted ? Color.clear : backgroundTint)
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: 1)
-            )
-            .opacity(configuration.isPressed ? 0.78 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-
-    private func backgroundColor(configuration: Configuration) -> Color {
-        if inverted {
-            let base = colorScheme == .dark ? Color.white : Color.black
-            return base.opacity(configuration.isPressed ? 0.82 : 1)
-        }
-        return Color.clear
-    }
-
-    private var foregroundColor: Color {
-        if inverted {
-            return colorScheme == .dark ? .black : .white
-        }
-        return .primary
-    }
-
-    private var borderColor: Color {
-        if inverted {
-            return colorScheme == .dark ? Color.white : Color.black
-        }
-        return colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
-    }
-
-    private var backgroundTint: Color {
-        if colorScheme == .dark {
-            return Color.white.opacity(0.05)
-        }
-        return Color.white.opacity(0.24)
     }
 }

@@ -15,5 +15,11 @@ __pycache__/
 # Xcode
 DerivedData/
 .build/
+__pycache__/
+*.pyc
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Plans (local sketches, not tracked)
+plans/

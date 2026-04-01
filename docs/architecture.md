@@ -6,14 +6,17 @@
 
 The app does not depend on a hosted backend. User projects keep their framework state in a visible `.agentappflow/` directory so the project contract is inspectable, portable, and discoverable by local AI agents.
 
+The current runtime foundation is intentionally narrower than the long-term architecture: Swift keeps the UI and selection state, Python owns the runtime registry and session metadata, and Rust remains deferred for guarded execution.
+
 ## Runtime Boundaries
 
 ### Swift macOS app
 
 Responsibilities:
 - onboarding and project registration
-- settings and approval controls
-- session history and framework health views
+- runtime-backed workspace selection and restoration
+- session start entry points, settings, and approval controls
+- session history, framework health views, and transient runtime error handling
 - user-facing controls for self-improvement mode and memory visibility
 
 The Swift app is the human control plane. It does not implement agent cognition or directly perform privileged repo mutations.
@@ -45,7 +48,7 @@ Rust is the trust boundary for risky local actions. It validates requests, execu
 
 - transport: local Unix domain socket
 - protocol: JSON-RPC
-- purpose: app-driven commands such as project registration, session start, approval changes, and retrospective generation
+- purpose: app-driven commands such as runtime health checks, project registration, project listing, project reload, session start, approval changes, and retrospective generation
 
 ### Python to Rust
 
@@ -56,10 +59,15 @@ This split keeps the UI responsive, the AI runtime flexible, and the enforcement
 
 ## Local-Only Service Commands
 
-The initial command surface should include:
+Implemented in the current runtime foundation:
+- `health_check`
 - `bootstrap_project`
 - `register_project`
+- `list_projects`
+- `get_project`
 - `start_session`
+
+Planned for later milestones:
 - `record_task_result`
 - `generate_retrospective`
 - `propose_framework_update`
@@ -67,6 +75,16 @@ The initial command surface should include:
 - `set_approval_mode`
 
 These commands are local APIs, not network APIs.
+
+## Runtime State Storage
+
+Runtime-owned state is stored outside the repo under:
+- `~/Library/Application Support/AgentAppFlow/runtime/projects.json`
+- `~/Library/Application Support/AgentAppFlow/runtime/sessions.json`
+
+Tests and local tooling can override that location with `AGENTAPPFLOW_RUNTIME_HOME`.
+
+The control center restores the selected project by persisting the runtime project identifier in user defaults and reloading that project through `get_project` on launch. Transient runtime failures should surface as runtime errors, not force the user back into onboarding.
 
 ## HyperAgent-Inspired Workflow
 
@@ -96,6 +114,14 @@ In `auto`, the system may update only framework-owned paths inside `.agentappflo
 - no OS-agnostic app shell yet
 - no attempt to make Rust the primary AI orchestration runtime
 
-## Milestone 1 Note
+## Phase 2 Runtime Note
 
-The first executable slice uses a SwiftUI onboarding shell that invokes a Python bootstrap CLI directly. Rust remains a deferred boundary for guarded execution and policy enforcement after the initial project-bootstrap workflow is working end to end.
+The current executable slice upgrades the bootstrap-only shell into a local runtime foundation:
+
+- Swift launches and talks to the Python core over JSON-RPC on a Unix domain socket.
+- The macOS app bundles its own `Python3.framework` and launches that embedded interpreter for runtime calls instead of relying on a user-installed `python3`.
+- Python owns a small local registry for registered projects and session metadata under the user's Application Support directory.
+- Onboarding bootstraps a repo and then registers it with the runtime instead of persisting a one-off Swift snapshot.
+- The control center reads runtime-backed project and session state and restores the last selected project through the runtime.
+
+Rust remains a deferred boundary for guarded execution and policy enforcement after the Swift to Python lifecycle and local project/session registry are proven end to end.

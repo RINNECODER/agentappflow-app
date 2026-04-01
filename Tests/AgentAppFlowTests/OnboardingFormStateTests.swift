@@ -5,6 +5,7 @@ final class OnboardingFormStateTests: XCTestCase {
     func testMakeRequestBuildsExpectedPayload() throws {
         var formState = OnboardingFormState()
         formState.projectName = "LegalPocketAI"
+        formState.projectDescription = "iOS legal assistant for contract analysis."
         formState.projectPath = "/tmp/LegalPocketAI"
         formState.projectType = .iosApp
         formState.selectedPlatforms = [.ios, .macos]
@@ -15,6 +16,7 @@ final class OnboardingFormStateTests: XCTestCase {
         let request = try formState.makeRequest()
 
         XCTAssertEqual(request.projectName, "LegalPocketAI")
+        XCTAssertEqual(request.projectDescription, "iOS legal assistant for contract analysis.")
         XCTAssertEqual(request.projectPath, "/tmp/LegalPocketAI")
         XCTAssertEqual(request.projectType, .iosApp)
         XCTAssertEqual(request.platforms, [.ios, .macos])

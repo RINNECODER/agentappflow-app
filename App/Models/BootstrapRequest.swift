@@ -185,6 +185,7 @@ enum ImprovementMode: String, CaseIterable, Codable, Identifiable {
 
 struct BootstrapRequest: Codable, Equatable {
     let projectName: String
+    let projectDescription: String
     let projectPath: String
     let projectType: ProjectType
     let platforms: [PlatformChoice]
@@ -194,6 +195,7 @@ struct BootstrapRequest: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case projectName = "project_name"
+        case projectDescription = "project_description"
         case projectPath = "project_path"
         case projectType = "project_type"
         case platforms
@@ -225,6 +227,7 @@ enum OnboardingValidationError: LocalizedError, Equatable {
 
 struct OnboardingFormState: Equatable {
     var projectName = ""
+    var projectDescription = ""
     var projectPath = ""
     var projectType: ProjectType = .iosApp
     var selectedPlatforms: Set<PlatformChoice> = [.ios]
@@ -245,6 +248,7 @@ struct OnboardingFormState: Equatable {
     func makeRequest() throws -> BootstrapRequest {
         let trimmedPath = projectPath.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedName = projectName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDescription = projectDescription.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedPath.isEmpty else {
             throw OnboardingValidationError.missingProjectPath
@@ -261,6 +265,7 @@ struct OnboardingFormState: Equatable {
 
         return BootstrapRequest(
             projectName: trimmedName,
+            projectDescription: trimmedDescription,
             projectPath: trimmedPath,
             projectType: projectType,
             platforms: selectedPlatforms.sorted(by: { $0.rawValue < $1.rawValue }),

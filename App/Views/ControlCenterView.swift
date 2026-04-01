@@ -11,117 +11,144 @@ private enum ControlCenterTab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .dashboard:
-            "Dashboard"
-        case .project:
-            "Project"
-        case .activity:
-            "Activity"
-        case .settings:
-            "Settings"
+        case .dashboard: "Dashboard"
+        case .project: "Project"
+        case .activity: "Activity"
+        case .settings: "Settings"
         }
     }
 
     var symbolName: String {
         switch self {
-        case .dashboard:
-            "square.grid.2x2"
-        case .project:
-            "folder"
-        case .activity:
-            "clock.arrow.circlepath"
-        case .settings:
-            "slider.horizontal.3"
+        case .dashboard: "square.grid.2x2"
+        case .project: "folder"
+        case .activity: "clock.arrow.circlepath"
+        case .settings: "slider.horizontal.3"
         }
     }
 }
 
 struct ControlCenterView: View {
-    let snapshot: WorkspaceSnapshot
-    let resetInitialSetup: () -> Void
+    @ObservedObject var store: AppRuntimeStore
+    let projectDetail: ProjectDetail
+    let presentSetup: () -> Void
 
     @State private var selectedTab: ControlCenterTab = .dashboard
 
+    private var project: RegisteredProject { projectDetail.project }
+    private var latestSession: SessionRecord? { projectDetail.latestSession }
+
     var body: some View {
-        ZStack {
-            AgentAppFlowBackdrop()
+        NavigationShell {
+            ControlCenterSidebar(
+                store: store,
+                currentProjectID: project.id,
+                selectedTab: $selectedTab,
+                presentSetup: presentSetup
+            )
+        } mainContent: {
+            ControlCenterHero(
+                project: project,
+                latestSession: latestSession
+            )
 
-            HStack(spacing: 16) {
-                ControlCenterSidebar(
-                    snapshot: snapshot,
-                    selectedTab: $selectedTab,
-                    resetInitialSetup: resetInitialSetup
+            switch selectedTab {
+            case .dashboard:
+                DashboardTab(
+                    project: project,
+                    latestSession: latestSession,
+                    startSession: startSession
                 )
-                .frame(width: 270)
-
-                VStack(spacing: 0) {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 18) {
-                            ControlCenterHero(snapshot: snapshot)
-
-                            switch selectedTab {
-                            case .dashboard:
-                                DashboardTab(snapshot: snapshot)
-                            case .project:
-                                ProjectTab(snapshot: snapshot)
-                            case .activity:
-                                ActivityTab(snapshot: snapshot)
-                            case .settings:
-                                SettingsTab(
-                                    snapshot: snapshot,
-                                    resetInitialSetup: resetInitialSetup
-                                )
-                            }
-                        }
-                        .padding(24)
-                        .padding(.top, 40)
-                    }
-                }
+            case .project:
+                ProjectTab(project: project)
+            case .activity:
+                ActivityTab(
+                    project: project,
+                    latestSession: latestSession,
+                    startSession: startSession
+                )
+            case .settings:
+                SettingsTab(
+                    project: project,
+                    runtimeHealth: store.runtimeHealth,
+                    errorMessage: store.errorMessage,
+                    presentSetup: presentSetup
+                )
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
-            .padding(.bottom, 20)
         }
-        .frame(minWidth: 1200, minHeight: 820)
+        .frame(
+            minWidth: AppTheme.Layout.controlCenterMinSize.width,
+            minHeight: AppTheme.Layout.controlCenterMinSize.height
+        )
+    }
+
+    private func startSession() {
+        Task {
+            await store.startSession()
+        }
     }
 }
 
 private struct ControlCenterSidebar: View {
-    let snapshot: WorkspaceSnapshot
+    @ObservedObject var store: AppRuntimeStore
+    let currentProjectID: String
     @Binding var selectedTab: ControlCenterTab
-    let resetInitialSetup: () -> Void
+    let presentSetup: () -> Void
+
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("WORKSPACE")
-                    .font(Font.brutalMeta(12, weight: .black))
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+                Text("WORKSPACES")
+                    .font(AppTheme.Typography.mono(12, weight: .black))
+                    .foregroundStyle(AppTheme.Colors.foregroundSecondary(for: colorScheme))
                     .textCase(.uppercase)
-                Text(snapshot.projectName.uppercased())
-                    .font(Font.brutalTitle(18, weight: .black))
-                Text(snapshot.projectType.displayName)
-                    .font(Font.brutalBody(13))
-                    .foregroundStyle(.secondary)
+
+                ForEach(store.projects) { project in
+                    Button {
+                        Task {
+                            await store.selectProject(id: project.id)
+                        }
+                    } label: {
+                        VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
+                            Text(project.projectName.uppercased())
+                                .font(AppTheme.Typography.headline(14, weight: .black))
+                                .lineLimit(1)
+                            Text(project.projectType.displayName)
+                                .font(AppTheme.Typography.body(12))
+                                .foregroundStyle(AppTheme.Colors.foregroundSecondary(for: colorScheme))
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, AppTheme.Spacing.md)
+                        .padding(.vertical, AppTheme.Spacing.sm + 2)
+                        .background(SidebarProjectFill(isSelected: project.id == currentProjectID))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
 
-            VStack(spacing: 8) {
+            VStack(spacing: AppTheme.Spacing.xs + 2) {
                 ForEach(ControlCenterTab.allCases) { tab in
                     Button {
                         selectedTab = tab
                     } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: tab.symbolName)
+                        HStack(spacing: AppTheme.Spacing.sm + 2) {
+                            AppIcon(systemName: tab.symbolName, size: 16)
                                 .frame(width: 18)
                             Text(tab.title)
-                                .font(Font.brutalTitle(14, weight: .black))
+                                .font(AppTheme.Typography.headline(14, weight: .black))
                             Spacer()
                         }
-                        .padding(.horizontal, 16)
-                        .frame(height: 54)
+                        .padding(.horizontal, AppTheme.Spacing.lg)
+                        .frame(height: AppTheme.Layout.controlHeight)
                         .background(SidebarTabFill(isSelected: selectedTab == tab))
-                        .foregroundStyle(selectedTab == tab ? selectedForeground : Color.primary)
+                        .foregroundStyle(
+                            selectedTab == tab
+                                ? AppTheme.Colors.primaryForeground(for: colorScheme)
+                                : AppTheme.Colors.foregroundPrimary(for: colorScheme)
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -129,20 +156,36 @@ private struct ControlCenterSidebar: View {
 
             Spacer()
 
-            Button("Set Up Another Repo", action: resetInitialSetup)
-                .buttonStyle(BrutalButtonStyle(inverted: true))
+            AppButton("Add Another Repo", variant: .primary, action: presentSetup)
         }
-        .padding(22)
+        .padding(AppTheme.Spacing.xl)
         .background(ControlCenterSidebarFill())
-        .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 32, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.shell, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.Radius.shell, style: .continuous)
+                .strokeBorder(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
         )
     }
+}
 
-    private var selectedForeground: Color {
-        colorScheme == .dark ? .black : .white
+private struct SidebarProjectFill: View {
+    let isSelected: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
+            .fill(
+                isSelected
+                    ? AppTheme.Colors.elevatedSurfaceTint(for: colorScheme)
+                    : AppTheme.Colors.insetSurfaceTint(for: colorScheme)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? AppTheme.Colors.primaryFill(for: colorScheme) : AppTheme.Colors.border(for: colorScheme),
+                        lineWidth: isSelected ? 1.4 : 1
+                    )
+            )
     }
 }
 
@@ -151,36 +194,33 @@ private struct SidebarTabFill: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: AppTheme.Radius.lg - 2, style: .continuous)
             .fill(backgroundColor)
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: AppTheme.Radius.lg - 2, style: .continuous)
                     .strokeBorder(borderColor, lineWidth: 1)
             )
     }
 
     private var backgroundColor: Color {
         if isSelected {
-            return colorScheme == .dark ? .white : .black
+            return AppTheme.Colors.primaryFill(for: colorScheme)
         }
-        return colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.42)
+        return AppTheme.Colors.secondaryFill(for: colorScheme)
     }
 
     private var borderColor: Color {
         if isSelected {
-            return colorScheme == .dark ? .white : .black
+            return AppTheme.Colors.primaryFill(for: colorScheme)
         }
-        return colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
+        return AppTheme.Colors.border(for: colorScheme)
     }
 }
 
-
 private struct ControlCenterSidebarFill: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
-        GlassSurface(
-            cornerRadius: 0,
+        AppGlassSurface(
+            cornerRadius: AppTheme.Radius.shell,
             material: .thinMaterial,
             tintOpacityDark: 0.05,
             tintOpacityLight: 0.20
@@ -189,86 +229,155 @@ private struct ControlCenterSidebarFill: View {
 }
 
 private struct ControlCenterHero: View {
-    let snapshot: WorkspaceSnapshot
+    let project: RegisteredProject
+    let latestSession: SessionRecord?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(snapshot.projectName)
-                .font(Font.brutalHero(54))
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+            HStack(alignment: .center, spacing: AppTheme.Spacing.sm) {
+                Text(project.projectName)
+                    .font(AppTheme.Typography.display())
+                AppBadge(status: latestSession == nil ? .idle : .healthy)
+            }
 
-            Text("\(snapshot.projectType.displayName) • \(snapshot.platforms.map(\.displayName).joined(separator: " • "))")
-                .font(Font.brutalTitle(17, weight: .bold))
-                .foregroundStyle(.secondary)
+            Text(
+                "\(project.projectType.displayName) • \(project.platforms.map(\.displayName).joined(separator: " • "))"
+            )
+            .font(AppTheme.Typography.headline(17, weight: .bold))
+            .foregroundStyle(.secondary)
+
+            if let latestSession {
+                Text("Latest session: \(latestSession.title)")
+                    .font(AppTheme.Typography.body(14, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }
 
 private struct DashboardTab: View {
-    let snapshot: WorkspaceSnapshot
+    let project: RegisteredProject
+    let latestSession: SessionRecord?
+    let startSession: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 18) {
-                MetricBlock(title: "Created Files", value: "\(snapshot.createdItems.count)", detail: "framework outputs")
-                MetricBlock(title: "Active Agents", value: "\(snapshot.agentTools.count)", detail: snapshot.agentTools.map(\.displayName).joined(separator: " + "))
-                MetricBlock(title: "Approval", value: snapshot.approvalMode.displayName, detail: snapshot.improvementMode.displayName)
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
+            HStack(spacing: AppTheme.Spacing.lg) {
+                MetricBlock(
+                    title: "Created Files",
+                    value: "\(project.createdItems.count)",
+                    detail: "framework outputs"
+                )
+                MetricBlock(
+                    title: "Active Agents",
+                    value: "\(project.agentTools.count)",
+                    detail: project.agentTools.map(\.displayName).joined(separator: " + ")
+                )
+                MetricBlock(
+                    title: "Sessions",
+                    value: "\(project.sessionCount)",
+                    detail: latestSession?.status.capitalized ?? "No session yet"
+                )
             }
 
-            HStack(alignment: .top, spacing: 18) {
-                ProjectOverviewBlock(snapshot: snapshot)
-                QuickActionsBlock(snapshot: snapshot)
+            HStack(alignment: .top, spacing: AppTheme.Spacing.lg) {
+                ProjectOverviewBlock(project: project, latestSession: latestSession)
+                QuickActionsBlock(project: project, startSession: startSession)
             }
 
-            ContractFilesBlock(snapshot: snapshot)
+            ContractFilesBlock(project: project)
         }
     }
 }
 
 private struct ProjectTab: View {
-    let snapshot: WorkspaceSnapshot
+    let project: RegisteredProject
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            ProjectOverviewBlock(snapshot: snapshot)
-            ContractFilesBlock(snapshot: snapshot)
+            ProjectOverviewBlock(project: project, latestSession: nil)
+            ContractFilesBlock(project: project)
         }
     }
 }
 
 private struct ActivityTab: View {
-    let snapshot: WorkspaceSnapshot
+    let project: RegisteredProject
+    let latestSession: SessionRecord?
+    let startSession: () -> Void
 
     var body: some View {
-        BrutalPanel {
-            VStack(alignment: .leading, spacing: 16) {
+        AppCard {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
                 Text("Recent Activity")
-                    .font(Font.brutalMeta(12, weight: .black))
+                    .font(AppTheme.Typography.mono(12, weight: .black))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary)
 
-                ActivityRow(title: "Workspace initialized", subtitle: snapshot.initializedAt.formatted(date: .abbreviated, time: .shortened))
-                ActivityRow(title: "Created \(snapshot.createdItems.count) files", subtitle: snapshot.createdItems.prefix(3).joined(separator: " • "))
-                ActivityRow(title: "Agent adapters ready", subtitle: snapshot.agentTools.map(\.displayName).joined(separator: " + "))
+                ActivityRow(
+                    title: "Project registered",
+                    subtitle: project.registeredAt.formatted(date: .abbreviated, time: .shortened)
+                )
+                ActivityRow(
+                    title: "Framework bootstrapped",
+                    subtitle: project.lastBootstrappedAt.formatted(date: .abbreviated, time: .shortened)
+                )
+
+                if let latestSession {
+                    ActivityRow(
+                        title: latestSession.title,
+                        subtitle: latestSession.startedAt.formatted(date: .abbreviated, time: .shortened)
+                    )
+                } else {
+                    AppButton("Start First Session", variant: .primary, action: startSession)
+                }
             }
         }
     }
 }
 
 private struct SettingsTab: View {
-    let snapshot: WorkspaceSnapshot
-    let resetInitialSetup: () -> Void
+    @EnvironmentObject private var themeController: ThemeController
+    let project: RegisteredProject
+    let runtimeHealth: RuntimeHealth?
+    let errorMessage: String?
+    let presentSetup: () -> Void
 
     var body: some View {
-        BrutalPanel {
-            VStack(alignment: .leading, spacing: 18) {
+        AppCard {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
                 Text("Workspace")
-                    .font(Font.brutalMeta(12, weight: .black))
+                    .font(AppTheme.Typography.mono(12, weight: .black))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary)
-                Text(snapshot.projectPath)
-                    .font(.system(size: 13, weight: .medium, design: .monospaced))
-                Button("Reset Onboarding", action: resetInitialSetup)
-                    .buttonStyle(BrutalButtonStyle(inverted: true))
+
+                Text(project.projectPath)
+                    .font(AppTheme.Typography.mono(13, weight: .medium))
+
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+                    Text("Appearance")
+                        .font(AppTheme.Typography.mono())
+                        .textCase(.uppercase)
+                        .foregroundStyle(.secondary)
+                    ThemeModePicker(selection: $themeController.selection)
+                }
+
+                if let runtimeHealth {
+                    HStack(spacing: AppTheme.Spacing.sm) {
+                        AppBadge(status: runtimeHealth.status.lowercased() == "ok" ? .healthy : .idle)
+                        Text("Runtime \(runtimeHealth.status) • v\(runtimeHealth.version)")
+                            .font(AppTheme.Typography.body(13, weight: .bold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let errorMessage, !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .font(AppTheme.Typography.body(13, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.destructive)
+                }
+
+                AppButton("Register Another Repo", variant: .primary, action: presentSetup)
             }
         }
     }
@@ -280,16 +389,16 @@ private struct MetricBlock: View {
     let detail: String
 
     var body: some View {
-        BrutalPanel {
-            VStack(alignment: .leading, spacing: 14) {
+        AppCard {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
                 Text(title)
-                    .font(Font.brutalMeta(12, weight: .black))
+                    .font(AppTheme.Typography.mono(12, weight: .black))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary)
                 Text(value)
-                    .font(Font.brutalHero(44))
+                    .font(AppTheme.Typography.display(44))
                 Text(detail)
-                    .font(Font.brutalTitle(14, weight: .bold))
+                    .font(AppTheme.Typography.headline(14, weight: .bold))
                     .foregroundStyle(.secondary)
             }
         }
@@ -298,41 +407,50 @@ private struct MetricBlock: View {
 }
 
 private struct ProjectOverviewBlock: View {
-    let snapshot: WorkspaceSnapshot
+    let project: RegisteredProject
+    let latestSession: SessionRecord?
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        BrutalPanel {
-            VStack(alignment: .leading, spacing: 20) {
+        AppCard {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.xl - 2) {
                 Text("Project Contract")
-                    .font(Font.brutalMeta(12, weight: .black))
+                    .font(AppTheme.Typography.mono(12, weight: .black))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary)
 
-                HStack(alignment: .top, spacing: 16) {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(Color.primary)
+                HStack(alignment: .top, spacing: AppTheme.Spacing.md + 2) {
+                    RoundedRectangle(cornerRadius: AppTheme.Radius.xl - 2, style: .continuous)
+                        .fill(AppTheme.Colors.primaryFill(for: colorScheme))
                         .frame(width: 120, height: 120)
                         .overlay(
-                            Image(systemName: "folder.badge.gearshape")
-                                .font(.system(size: 34, weight: .bold))
-                                .foregroundStyle(Color(nsColor: .windowBackgroundColor))
+                            AppIcon(
+                                systemName: "folder.badge.gearshape",
+                                size: 34,
+                                weight: .bold,
+                                color: Color(nsColor: .windowBackgroundColor)
+                            )
                         )
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(snapshot.projectName)
-                            .font(Font.brutalTitle(28, weight: .black))
-                        Text(snapshot.projectPath)
-                            .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+                        Text(project.projectName)
+                            .font(AppTheme.Typography.headline(28, weight: .black))
+                        Text(project.projectPath)
+                            .font(AppTheme.Typography.mono(13, weight: .medium))
                             .foregroundStyle(.secondary)
 
-                        HStack(spacing: 8) {
-                            DetailPill(text: snapshot.projectType.displayName)
-                            DetailPill(text: snapshot.platforms.map(\.displayName).joined(separator: " + "))
+                        HStack(spacing: AppTheme.Spacing.xs + 2) {
+                            DetailPill(text: project.projectType.displayName)
+                            DetailPill(text: project.platforms.map(\.displayName).joined(separator: " + "))
                         }
 
-                        Text("Initialized \(snapshot.initializedAt.formatted(date: .abbreviated, time: .shortened))")
-                            .font(Font.brutalBody(13, weight: .bold))
-                            .foregroundStyle(.secondary)
+                        Text(
+                            latestSession != nil
+                                ? "Latest session \(latestSession!.startedAt.formatted(date: .abbreviated, time: .shortened))"
+                                : "No sessions started yet"
+                        )
+                        .font(AppTheme.Typography.body(13, weight: .bold))
+                        .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -342,28 +460,32 @@ private struct ProjectOverviewBlock: View {
 }
 
 private struct QuickActionsBlock: View {
-    let snapshot: WorkspaceSnapshot
+    let project: RegisteredProject
+    let startSession: () -> Void
 
     var body: some View {
-        BrutalPanel {
-            VStack(alignment: .leading, spacing: 18) {
+        AppCard {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
                 Text("Quick Actions")
-                    .font(Font.brutalMeta(12, weight: .black))
+                    .font(AppTheme.Typography.mono(12, weight: .black))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary)
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: AppTheme.Spacing.sm + 2) {
+                    QuickActionTile(title: "Start Session", symbolName: "play.circle", action: startSession)
                     QuickActionTile(title: "Open Repo", symbolName: "folder") {
-                        NSWorkspace.shared.open(URL(fileURLWithPath: snapshot.projectPath))
+                        NSWorkspace.shared.open(URL(fileURLWithPath: project.projectPath))
                     }
                     QuickActionTile(title: "AGENTS", symbolName: "doc.text") {
-                        NSWorkspace.shared.open(URL(fileURLWithPath: snapshot.projectPath).appendingPathComponent("AGENTS.md"))
-                    }
-                    QuickActionTile(title: "CLAUDE", symbolName: "text.bubble") {
-                        NSWorkspace.shared.open(URL(fileURLWithPath: snapshot.projectPath).appendingPathComponent("CLAUDE.md"))
+                        NSWorkspace.shared.open(
+                            URL(fileURLWithPath: project.projectPath).appendingPathComponent("AGENTS.md")
+                        )
                     }
                     QuickActionTile(title: "YAML", symbolName: "gearshape.2") {
-                        NSWorkspace.shared.open(URL(fileURLWithPath: snapshot.projectPath).appendingPathComponent(".agentappflow/project.yaml"))
+                        NSWorkspace.shared.open(
+                            URL(fileURLWithPath: project.projectPath)
+                                .appendingPathComponent(".agentappflow/project.yaml")
+                        )
                     }
                 }
             }
@@ -373,38 +495,38 @@ private struct QuickActionsBlock: View {
 }
 
 private struct ContractFilesBlock: View {
-    let snapshot: WorkspaceSnapshot
+    let project: RegisteredProject
 
     var body: some View {
-        BrutalPanel {
-            VStack(alignment: .leading, spacing: 16) {
+        AppCard {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
                 Text("Contract Files")
-                    .font(Font.brutalMeta(12, weight: .black))
+                    .font(AppTheme.Typography.mono(12, weight: .black))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary)
 
-                ForEach(snapshot.createdItems, id: \.self) { item in
+                ForEach(project.createdItems, id: \.self) { item in
                     HStack {
                         Text(item)
-                            .font(.system(size: 13, weight: .medium, design: .monospaced))
+                            .font(AppTheme.Typography.mono(13, weight: .medium))
                         Spacer()
                         Text("created")
-                            .font(Font.brutalMeta(11, weight: .black))
+                            .font(AppTheme.Typography.mono(11, weight: .black))
                             .foregroundStyle(.secondary)
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, AppTheme.Spacing.xxs)
                 }
 
-                if !snapshot.skippedItems.isEmpty {
-                    Divider()
-                    ForEach(snapshot.skippedItems, id: \.self) { item in
+                if !project.skippedItems.isEmpty {
+                    AppDivider()
+                    ForEach(project.skippedItems, id: \.self) { item in
                         HStack {
                             Text(item)
-                                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                                .font(AppTheme.Typography.mono(13, weight: .medium))
                                 .foregroundStyle(.secondary)
                             Spacer()
                             Text("kept")
-                                .font(Font.brutalMeta(11, weight: .black))
+                                .font(AppTheme.Typography.mono(11, weight: .black))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -421,11 +543,10 @@ private struct QuickActionTile: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 12) {
-                Image(systemName: symbolName)
-                    .font(.system(size: 20, weight: .bold))
+            VStack(spacing: AppTheme.Spacing.sm + 2) {
+                AppIcon(systemName: symbolName, size: 20, weight: .bold)
                 Text(title)
-                    .font(Font.brutalTitle(13, weight: .black))
+                    .font(AppTheme.Typography.headline(13, weight: .black))
             }
             .frame(maxWidth: .infinity, minHeight: 118)
             .background(QuickActionFill())
@@ -438,15 +559,15 @@ private struct QuickActionFill: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
+        RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
             .fill(.thinMaterial)
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.white.opacity(0.24))
+                RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
+                    .fill(AppTheme.Colors.elevatedSurfaceTint(for: colorScheme))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08), lineWidth: 1)
+                RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
+                    .strokeBorder(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
             )
     }
 }
@@ -457,16 +578,20 @@ private struct DetailPill: View {
 
     var body: some View {
         Text(text)
-            .font(Font.brutalMeta(11, weight: .black))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
+            .font(AppTheme.Typography.mono(11, weight: .black))
+            .padding(.horizontal, AppTheme.Spacing.sm)
+            .padding(.vertical, AppTheme.Spacing.xs + 1)
             .background(
                 Capsule()
                     .fill(.thinMaterial)
                     .overlay(
                         Capsule()
-                            .fill(colorScheme == .dark ? Color.white.opacity(0.07) : Color.white.opacity(0.26))
+                            .fill(AppTheme.Colors.elevatedSurfaceTint(for: colorScheme))
                     )
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
             )
     }
 }
@@ -474,45 +599,22 @@ private struct DetailPill: View {
 private struct ActivityRow: View {
     let title: String
     let subtitle: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.primary.opacity(0.08))
-                .frame(width: 46, height: 46)
-                .overlay(Image(systemName: "clock.arrow.circlepath"))
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(Font.brutalTitle(15, weight: .black))
-                Text(subtitle)
-                    .font(Font.brutalBody(13))
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
-private struct BrutalPanel<Content: View>: View {
-    @ViewBuilder let content: Content
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content
+        HStack(alignment: .top, spacing: AppTheme.Spacing.sm + 2) {
+            RoundedRectangle(cornerRadius: AppTheme.Radius.md - 2, style: .continuous)
+                .fill(AppTheme.Colors.secondaryFill(for: colorScheme))
+                .frame(width: 46, height: 46)
+                .overlay(AppIcon(systemName: "clock.arrow.circlepath", size: 16))
+
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.xxs) {
+                Text(title)
+                    .font(AppTheme.Typography.headline(15, weight: .black))
+                Text(subtitle)
+                    .font(AppTheme.Typography.body(13))
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(22)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.regularMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.05) : Color.white.opacity(0.18))
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08), lineWidth: 1)
-        )
     }
 }

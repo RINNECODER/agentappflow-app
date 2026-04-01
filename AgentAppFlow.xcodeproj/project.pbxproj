@@ -7,17 +7,31 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		070DB00611E4271D07EC23F6 /* AgentRuntimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDBC251F7934202B7D97302 /* AgentRuntimeService.swift */; };
+		21EC11AFEFC9FA4C31F6955F /* RuntimeStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E329E5EBAC82AD4996D0D918 /* RuntimeStoreTests.swift */; };
+		53941C75F9E397AF98B72683 /* RuntimeStoreTests.swift.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6187EAEBA1E79BA6F0FCAE2B /* RuntimeStoreTests.swift.plist */; };
 		5AA90D5A2CCCFA0A4A224744 /* agentappflow_bootstrap.py in Resources */ = {isa = PBXBuildFile; fileRef = 2A5D77288488FB7FB366753D /* agentappflow_bootstrap.py */; };
 		5AD9079D1CF8A8591A9DF374 /* OnboardingFormStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 968CE2DB6D3E5F9FAB000AC6 /* OnboardingFormStateTests.swift */; };
-		828D5F388574630B52F3A586 /* BrutalTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = F46FFB6A4B1E7B47B4569584 /* BrutalTypography.swift */; };
+		65965261B82CE14F710DC5EB /* ThemeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6845388A77549F622E66923D /* ThemeController.swift */; };
+		7FD225D6B83E11CED757F0DC /* runtime.py in Resources */ = {isa = PBXBuildFile; fileRef = 3F4E610D27937D8F06ADCE01 /* runtime.py */; };
 		8340FEAB1594781DEE22E7F0 /* FirstRunSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 584FFA286F553CA01576FB65 /* FirstRunSetupView.swift */; };
+		858D8A308268C5FEF5A1B32B /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF13F06DB71E7C3D82E4EEE /* AppTheme.swift */; };
 		8A60A10F834EAC5A08CC5C0B /* BootstrapCLIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 227CE79C80BF9D70456F4755 /* BootstrapCLIService.swift */; };
 		8C9C3AAF3F2472EB410BAE92 /* WorkspaceSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6F73C34A1D981FFFD6B3D9 /* WorkspaceSnapshotTests.swift */; };
 		8F288B29837B217159D07BEB /* WorkspaceSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2176531E4A0ECBDC87439F16 /* WorkspaceSnapshot.swift */; };
+		9421ECE948C9A6D4CCB6FAF2 /* RuntimeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A13218F4E93F0EE782358E5 /* RuntimeModels.swift */; };
 		945B1F8F2D124CEA5BD828B4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56B4D7DA286E97F923948A14 /* ContentView.swift */; };
+		9613D674361CF3F0F6BDA72D /* AppRuntimeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5DEA93ABBC065E5D3C12AE /* AppRuntimeStore.swift */; };
+		A01E179B0807AAED65983DA2 /* PythonRuntimeLocatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228A843A3F16702445112BE8 /* PythonRuntimeLocatorTests.swift */; };
+		A27ACEDE4E7DF23D175EDC6A /* NavigationShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45AFEF5DB5D15339B7BD9F2A /* NavigationShell.swift */; };
+		A621F2F6B722FF1D85242C22 /* storage.py in Resources */ = {isa = PBXBuildFile; fileRef = 9F07E39D9A1A9384C53E81D5 /* storage.py */; };
+		B73DF6D179B387C42E8CEF76 /* AppComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16BBF2E8991B9ED1446356D3 /* AppComponents.swift */; };
+		BD912A1C99D6083D5E28F97B /* DesignSystemComponentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727022AE0368A1C325F61098 /* DesignSystemComponentTests.swift */; };
+		D30B002DD4581B210076FA66 /* PythonRuntimeLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1B0F1612AD904A2ACA9B1F1 /* PythonRuntimeLocator.swift */; };
 		D3F624E6966BC7500446FFD2 /* AgentAppFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B70FFE26FBEB7485DCF1FA4E /* AgentAppFlowApp.swift */; };
 		DEFEB631B2384B0B6A731C1A /* BootstrapRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6EAE11AFAF0DB2F22B94F38 /* BootstrapRequest.swift */; };
 		EAAF864C34AABCA2095404BB /* ThemeModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75CF20D7A16CBA779F111943 /* ThemeModePicker.swift */; };
+		ED9E26523D99F1873146B22A /* bootstrap.py in Resources */ = {isa = PBXBuildFile; fileRef = 638D3D9B9EDEA9C7B2A171FE /* bootstrap.py */; };
 		F865971570C92EB8202A8389 /* ControlCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 915655C8CBDBA93D5286E385 /* ControlCenterView.swift */; };
 /* End PBXBuildFile section */
 
@@ -32,27 +46,45 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		16BBF2E8991B9ED1446356D3 /* AppComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppComponents.swift; sourceTree = "<group>"; };
 		2176531E4A0ECBDC87439F16 /* WorkspaceSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSnapshot.swift; sourceTree = "<group>"; };
 		227CE79C80BF9D70456F4755 /* BootstrapCLIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootstrapCLIService.swift; sourceTree = "<group>"; };
+		228A843A3F16702445112BE8 /* PythonRuntimeLocatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PythonRuntimeLocatorTests.swift; sourceTree = "<group>"; };
 		2A5D77288488FB7FB366753D /* agentappflow_bootstrap.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = agentappflow_bootstrap.py; sourceTree = "<group>"; };
+		3A13218F4E93F0EE782358E5 /* RuntimeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeModels.swift; sourceTree = "<group>"; };
+		3F4E610D27937D8F06ADCE01 /* runtime.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = runtime.py; sourceTree = "<group>"; };
+		45AFEF5DB5D15339B7BD9F2A /* NavigationShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationShell.swift; sourceTree = "<group>"; };
 		56B4D7DA286E97F923948A14 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		584FFA286F553CA01576FB65 /* FirstRunSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstRunSetupView.swift; sourceTree = "<group>"; };
+		6187EAEBA1E79BA6F0FCAE2B /* RuntimeStoreTests.swift.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = RuntimeStoreTests.swift.plist; sourceTree = "<group>"; };
+		638D3D9B9EDEA9C7B2A171FE /* bootstrap.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = bootstrap.py; sourceTree = "<group>"; };
+		6845388A77549F622E66923D /* ThemeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeController.swift; sourceTree = "<group>"; };
+		727022AE0368A1C325F61098 /* DesignSystemComponentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystemComponentTests.swift; sourceTree = "<group>"; };
 		75CF20D7A16CBA779F111943 /* ThemeModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeModePicker.swift; sourceTree = "<group>"; };
+		7CF13F06DB71E7C3D82E4EEE /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		8B6F73C34A1D981FFFD6B3D9 /* WorkspaceSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSnapshotTests.swift; sourceTree = "<group>"; };
+		8BDBC251F7934202B7D97302 /* AgentRuntimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRuntimeService.swift; sourceTree = "<group>"; };
 		915655C8CBDBA93D5286E385 /* ControlCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlCenterView.swift; sourceTree = "<group>"; };
 		968CE2DB6D3E5F9FAB000AC6 /* OnboardingFormStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFormStateTests.swift; sourceTree = "<group>"; };
 		9E8DD259B678897073F02FC7 /* AgentAppFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgentAppFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9F07E39D9A1A9384C53E81D5 /* storage.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = storage.py; sourceTree = "<group>"; };
 		B70FFE26FBEB7485DCF1FA4E /* AgentAppFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentAppFlowApp.swift; sourceTree = "<group>"; };
 		BD8FC95EE17DE23556CEAE44 /* AgentAppFlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AgentAppFlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6EAE11AFAF0DB2F22B94F38 /* BootstrapRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootstrapRequest.swift; sourceTree = "<group>"; };
-		F46FFB6A4B1E7B47B4569584 /* BrutalTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrutalTypography.swift; sourceTree = "<group>"; };
+		DD5DEA93ABBC065E5D3C12AE /* AppRuntimeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRuntimeStore.swift; sourceTree = "<group>"; };
+		E1B0F1612AD904A2ACA9B1F1 /* PythonRuntimeLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PythonRuntimeLocator.swift; sourceTree = "<group>"; };
+		E329E5EBAC82AD4996D0D918 /* RuntimeStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
 		1152E1A02A8A245FFD157908 /* AgentAppFlowTests */ = {
 			isa = PBXGroup;
 			children = (
+				727022AE0368A1C325F61098 /* DesignSystemComponentTests.swift */,
 				968CE2DB6D3E5F9FAB000AC6 /* OnboardingFormStateTests.swift */,
+				228A843A3F16702445112BE8 /* PythonRuntimeLocatorTests.swift */,
+				E329E5EBAC82AD4996D0D918 /* RuntimeStoreTests.swift */,
+				6187EAEBA1E79BA6F0FCAE2B /* RuntimeStoreTests.swift.plist */,
 				8B6F73C34A1D981FFFD6B3D9 /* WorkspaceSnapshotTests.swift */,
 			);
 			path = AgentAppFlowTests;
@@ -72,6 +104,7 @@
 			children = (
 				B70FFE26FBEB7485DCF1FA4E /* AgentAppFlowApp.swift */,
 				56B4D7DA286E97F923948A14 /* ContentView.swift */,
+				AC5C0FBC9F656AA4A6427362 /* DesignSystem */,
 				7D5CA6B6B03D314DB6A37F98 /* Models */,
 				AEBB9BCCCED671ACC1419BAF /* Services */,
 				B923B893A932428C2CA1B3E0 /* Views */,
@@ -79,19 +112,44 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		4AF9A2B91A373B6D10D2D745 /* agentappflow_core */ = {
+			isa = PBXGroup;
+			children = (
+				638D3D9B9EDEA9C7B2A171FE /* bootstrap.py */,
+				3F4E610D27937D8F06ADCE01 /* runtime.py */,
+				9F07E39D9A1A9384C53E81D5 /* storage.py */,
+			);
+			path = agentappflow_core;
+			sourceTree = "<group>";
+		};
 		7D5CA6B6B03D314DB6A37F98 /* Models */ = {
 			isa = PBXGroup;
 			children = (
 				D6EAE11AFAF0DB2F22B94F38 /* BootstrapRequest.swift */,
+				3A13218F4E93F0EE782358E5 /* RuntimeModels.swift */,
 				2176531E4A0ECBDC87439F16 /* WorkspaceSnapshot.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
 		};
+		AC5C0FBC9F656AA4A6427362 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				16BBF2E8991B9ED1446356D3 /* AppComponents.swift */,
+				7CF13F06DB71E7C3D82E4EEE /* AppTheme.swift */,
+				45AFEF5DB5D15339B7BD9F2A /* NavigationShell.swift */,
+				6845388A77549F622E66923D /* ThemeController.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
 		AEBB9BCCCED671ACC1419BAF /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				8BDBC251F7934202B7D97302 /* AgentRuntimeService.swift */,
+				DD5DEA93ABBC065E5D3C12AE /* AppRuntimeStore.swift */,
 				227CE79C80BF9D70456F4755 /* BootstrapCLIService.swift */,
+				E1B0F1612AD904A2ACA9B1F1 /* PythonRuntimeLocator.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -100,6 +158,7 @@
 			isa = PBXGroup;
 			children = (
 				2A5D77288488FB7FB366753D /* agentappflow_bootstrap.py */,
+				4AF9A2B91A373B6D10D2D745 /* agentappflow_core */,
 			);
 			path = python;
 			sourceTree = "<group>";
@@ -107,7 +166,6 @@
 		B923B893A932428C2CA1B3E0 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				F46FFB6A4B1E7B47B4569584 /* BrutalTypography.swift */,
 				915655C8CBDBA93D5286E385 /* ControlCenterView.swift */,
 				584FFA286F553CA01576FB65 /* FirstRunSetupView.swift */,
 				75CF20D7A16CBA779F111943 /* ThemeModePicker.swift */,
@@ -141,6 +199,7 @@
 			buildConfigurationList = 73B1E9F7EF9F4633C749801B /* Build configuration list for PBXNativeTarget "AgentAppFlowTests" */;
 			buildPhases = (
 				5830541BB57C292C751732F3 /* Sources */,
+				B9ABB64B48576E3007875E3C /* Resources */,
 			);
 			buildRules = (
 			);
@@ -160,6 +219,7 @@
 			buildPhases = (
 				B6BD24A12581E58385FC78F3 /* Sources */,
 				D9DCDE6B001B3F5AA0D8C9CA /* Resources */,
+				F7A5C22B104AA047670F2B3A /* Embed Python Runtime */,
 			);
 			buildRules = (
 			);
@@ -202,22 +262,58 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		B9ABB64B48576E3007875E3C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				53941C75F9E397AF98B72683 /* RuntimeStoreTests.swift.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D9DCDE6B001B3F5AA0D8C9CA /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				5AA90D5A2CCCFA0A4A224744 /* agentappflow_bootstrap.py in Resources */,
+				ED9E26523D99F1873146B22A /* bootstrap.py in Resources */,
+				7FD225D6B83E11CED757F0DC /* runtime.py in Resources */,
+				A621F2F6B722FF1D85242C22 /* storage.py in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F7A5C22B104AA047670F2B3A /* Embed Python Runtime */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Python Runtime";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\n/bin/sh \"${SRCROOT}/scripts/embed_python_runtime.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5830541BB57C292C751732F3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BD912A1C99D6083D5E28F97B /* DesignSystemComponentTests.swift in Sources */,
 				5AD9079D1CF8A8591A9DF374 /* OnboardingFormStateTests.swift in Sources */,
+				A01E179B0807AAED65983DA2 /* PythonRuntimeLocatorTests.swift in Sources */,
+				21EC11AFEFC9FA4C31F6955F /* RuntimeStoreTests.swift in Sources */,
 				8C9C3AAF3F2472EB410BAE92 /* WorkspaceSnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -227,12 +323,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				D3F624E6966BC7500446FFD2 /* AgentAppFlowApp.swift in Sources */,
+				070DB00611E4271D07EC23F6 /* AgentRuntimeService.swift in Sources */,
+				B73DF6D179B387C42E8CEF76 /* AppComponents.swift in Sources */,
+				9613D674361CF3F0F6BDA72D /* AppRuntimeStore.swift in Sources */,
+				858D8A308268C5FEF5A1B32B /* AppTheme.swift in Sources */,
 				8A60A10F834EAC5A08CC5C0B /* BootstrapCLIService.swift in Sources */,
 				DEFEB631B2384B0B6A731C1A /* BootstrapRequest.swift in Sources */,
-				828D5F388574630B52F3A586 /* BrutalTypography.swift in Sources */,
 				945B1F8F2D124CEA5BD828B4 /* ContentView.swift in Sources */,
 				F865971570C92EB8202A8389 /* ControlCenterView.swift in Sources */,
 				8340FEAB1594781DEE22E7F0 /* FirstRunSetupView.swift in Sources */,
+				A27ACEDE4E7DF23D175EDC6A /* NavigationShell.swift in Sources */,
+				D30B002DD4581B210076FA66 /* PythonRuntimeLocator.swift in Sources */,
+				9421ECE948C9A6D4CCB6FAF2 /* RuntimeModels.swift in Sources */,
+				65965261B82CE14F710DC5EB /* ThemeController.swift in Sources */,
 				EAAF864C34AABCA2095404BB /* ThemeModePicker.swift in Sources */,
 				8F288B29837B217159D07BEB /* WorkspaceSnapshot.swift in Sources */,
 			);

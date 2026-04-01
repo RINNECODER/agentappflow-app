@@ -6,6 +6,8 @@ Every managed user repository gets a `.agentappflow/` directory at the repo root
 
 The goal is to keep canonical project memory and framework rules visible inside the repo while allowing derived indexes and caches to remain local implementation details.
 
+The repo-local framework is not the same thing as the app runtime registry. The macOS control center reads registered projects and session metadata from the local runtime under Application Support, while `.agentappflow/` remains the user-visible contract written into the managed repository.
+
 ## Directory Layout
 
 ```text
@@ -24,7 +26,7 @@ The goal is to keep canonical project memory and framework rules visible inside 
 - `project.yaml`: project identity, stack, goals, enabled agent tools, and policy settings
 - `rules/`: generated working rules and project guardrails
 - `templates/`: task, review, onboarding, and retrospective templates
-- `sessions/`: human-readable session summaries and transcripts
+- `sessions/`: human-readable session summaries and transcripts once session export lands
 - `retros/`: post-task Q&A, outcomes, and lessons learned
 - `proposals/`: pending or accepted framework changes
 - `cache/`: derived local indexes such as SQLite, embeddings, or search artifacts
@@ -74,6 +76,19 @@ Derived state belongs in `.agentappflow/cache/` and should usually be gitignored
 - embeddings
 - retrieval caches
 - temporary execution metadata
+
+## Runtime-Owned Local State
+
+The app also maintains runtime-owned local state outside the repository:
+- `projects.json`: the registry of projects shown in the control center
+- `sessions.json`: session records and counts for registered projects
+
+By default those files live under `~/Library/Application Support/AgentAppFlow/runtime/`. Tests and local tooling can redirect them with `AGENTAPPFLOW_RUNTIME_HOME`.
+
+This separation matters for contributors:
+- `.agentappflow/` is the repo contract produced by `bootstrap_project`
+- Application Support runtime files are the app's local source of truth for registered projects, selected-project restoration, and session counters
+- The control center does not rebuild its state by scanning `.agentappflow/` on launch
 
 ## Agent Adapter Files
 

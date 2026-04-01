@@ -1,6 +1,6 @@
 import Foundation
 
-struct BootstrapCommandResult: Decodable, Equatable {
+struct BootstrapCommandResult: Codable, Equatable {
     let ok: Bool
     let message: String
     let created: [String]
@@ -41,21 +41,21 @@ final class BootstrapCLIService {
             let scriptURL = try Self.bootstrapScriptURL()
             let payload = try encoder.encode(request)
             try payload.write(to: tempFileURL)
+            let executableURL = try PythonRuntimeLocator.interpreterURL()
 
             let process = Process()
             let stdoutPipe = Pipe()
             let stderrPipe = Pipe()
 
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = [
-                "python3",
-                scriptURL.path,
-                "bootstrap_project",
-                "--input",
-                tempFileURL.path
-            ] + (force ? ["--force"] : [])
+            process.executableURL = executableURL
+            process.arguments = try PythonRuntimeLocator.launchArguments(
+                scriptURL: scriptURL,
+                command: "bootstrap_project",
+                additionalArguments: ["--input", tempFileURL.path] + (force ? ["--force"] : [])
+            )
             process.standardOutput = stdoutPipe
             process.standardError = stderrPipe
+            process.environment = PythonRuntimeLocator.launchEnvironment()
 
             try process.run()
             process.waitUntilExit()

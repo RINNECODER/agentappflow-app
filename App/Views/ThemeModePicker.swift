@@ -2,10 +2,10 @@ import SwiftUI
 
 struct WindowTrafficDots: View {
     var body: some View {
-        HStack(spacing: 8) {
-            Circle().fill(Color(red: 1.0, green: 0.37, blue: 0.36)).frame(width: 14, height: 14)
-            Circle().fill(Color(red: 1.0, green: 0.76, blue: 0.10)).frame(width: 14, height: 14)
-            Circle().fill(Color(red: 0.17, green: 0.83, blue: 0.30)).frame(width: 14, height: 14)
+        HStack(spacing: AppTheme.Spacing.xs + 2) {
+            Circle().fill(AppTheme.Colors.trafficRed).frame(width: 14, height: 14)
+            Circle().fill(AppTheme.Colors.trafficYellow).frame(width: 14, height: 14)
+            Circle().fill(AppTheme.Colors.trafficGreen).frame(width: 14, height: 14)
         }
         .frame(height: 14)
     }
@@ -16,22 +16,22 @@ struct ThemeModePicker: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: AppTheme.Spacing.xs) {
             ForEach(AppearanceMode.allCases) { mode in
                 Button {
                     selection = mode
                 } label: {
-                    Image(systemName: symbolName(for: mode))
-                        .font(.system(size: 12, weight: .black))
+                    AppIcon(systemName: symbolName(for: mode), size: 12)
                         .foregroundStyle(
                             selection == mode
-                                ? (colorScheme == .dark ? Color.black : Color.white)
-                                : Color.primary
+                                ? AppTheme.Colors.primaryForeground(for: colorScheme)
+                                : AppTheme.Colors.foregroundPrimary(for: colorScheme)
                         )
-                        .frame(width: 30, height: 30)
+                        .frame(width: AppTheme.Layout.minimumTapTarget, height: AppTheme.Layout.minimumTapTarget)
                         .background(modeFill(for: mode))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(mode.displayName)
             }
         }
     }
@@ -53,15 +53,15 @@ struct ThemeModePicker: View {
         RoundedRectangle(cornerRadius: 10, style: .continuous)
             .fill(
                 isSelected
-                    ? (colorScheme == .dark ? Color.white : Color.black)
-                    : (colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03))
+                    ? AppTheme.Colors.primaryFill(for: colorScheme)
+                    : AppTheme.Colors.secondaryFill(for: colorScheme).opacity(colorScheme == .dark ? 1 : 0.92)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .strokeBorder(
                         isSelected
-                            ? (colorScheme == .dark ? Color.white : Color.black)
-                            : (colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)),
+                            ? AppTheme.Colors.primaryFill(for: colorScheme)
+                            : AppTheme.Colors.border(for: colorScheme),
                         lineWidth: 1
                     )
             )

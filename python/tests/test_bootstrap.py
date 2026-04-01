@@ -27,6 +27,7 @@ class BootstrapProjectTests(unittest.TestCase):
     def make_request(self, repo_path: Path) -> BootstrapRequest:
         return BootstrapRequest(
             project_name="LegalPocketAI",
+            project_description="iOS legal assistant for contract analysis.",
             project_path=str(repo_path),
             project_type="ios_app",
             platforms=["ios", "macos"],
@@ -45,6 +46,9 @@ class BootstrapProjectTests(unittest.TestCase):
         self.assertTrue((repo_path / ".agentappflow" / "templates" / "task-template.md").exists())
         self.assertTrue((repo_path / "AGENTS.md").exists())
         self.assertTrue((repo_path / "CLAUDE.md").exists())
+        project_yaml = (repo_path / ".agentappflow" / "project.yaml").read_text(encoding="utf-8")
+        self.assertIn("project_description: |-", project_yaml)
+        self.assertIn("iOS legal assistant for contract analysis.", project_yaml)
         self.assertIn(".agentappflow/project.yaml", result.created)
         self.assertIn("AGENTS.md", result.created)
 
@@ -69,6 +73,7 @@ class BootstrapProjectTests(unittest.TestCase):
     def test_bootstrap_requires_existing_path(self) -> None:
         request = BootstrapRequest(
             project_name="MissingRepo",
+            project_description="",
             project_path="/tmp/agentappflow-missing-repo",
             project_type="ios_app",
             platforms=["ios"],

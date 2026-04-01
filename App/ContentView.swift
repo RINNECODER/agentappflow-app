@@ -2,150 +2,152 @@ import AppKit
 import SwiftUI
 
 struct ContentView: View {
-    @AppStorage("hasCompletedInitialSetup") private var hasCompletedInitialSetup = false
-    @AppStorage("workspaceSnapshot") private var workspaceSnapshotData = ""
+    @StateObject private var runtimeStore = AppRuntimeStore()
+    @State private var isPresentingSetup = false
+    @State private var hasCompletedInitialLoad = false
 
     var body: some View {
-        Group {
-            if let workspaceSnapshot {
-                ControlCenterView(
-                    snapshot: workspaceSnapshot,
-                    resetInitialSetup: resetInitialSetup
-                )
-            } else {
-                FirstRunSetupView(
-                    completeInitialSetup: completeInitialSetup
-                )
-            }
+        currentScene
+            .background(WindowConfigurator(minimumSize: minimumWindowSize))
+        .task {
+            await runtimeStore.loadProjects()
+            hasCompletedInitialLoad = true
         }
-        .background(WindowConfigurator())
     }
 
-    private var workspaceSnapshot: WorkspaceSnapshot? {
-        guard hasCompletedInitialSetup else {
-            return nil
+    @ViewBuilder
+    private var currentScene: some View {
+        if shouldPresentSetup {
+            FirstRunSetupView(
+                runtimeService: runtimeStore.runtimeService,
+                completeInitialSetup: completeInitialSetup
+            )
+        } else if runtimeStore.isLoading {
+            RuntimeLoadingView()
+        } else if shouldPresentRuntimeError {
+            RuntimeErrorView(
+                message: runtimeStore.errorMessage ?? "Unknown runtime error.",
+                retryLoad: retryLoad,
+                presentSetup: presentSetup
+            )
+        } else if let projectDetail = runtimeStore.selectedProjectDetail {
+            ControlCenterView(
+                store: runtimeStore,
+                projectDetail: projectDetail,
+                presentSetup: presentSetup
+            )
+        } else {
+            RuntimeLoadingView()
         }
-        return WorkspaceSnapshot.decode(from: workspaceSnapshotData)
     }
 
-    private func completeInitialSetup(with snapshot: WorkspaceSnapshot) {
-        workspaceSnapshotData = snapshot.encoded() ?? ""
-        hasCompletedInitialSetup = true
+    private var shouldPresentSetup: Bool {
+        if isPresentingSetup {
+            return true
+        }
+
+        return hasCompletedInitialLoad
+            && !runtimeStore.isLoading
+            && runtimeStore.errorMessage == nil
+            && !runtimeStore.hasPersistedProjectSelection
+            && runtimeStore.projects.isEmpty
+            && runtimeStore.selectedProjectDetail == nil
     }
 
-    private func resetInitialSetup() {
-        hasCompletedInitialSetup = false
-        workspaceSnapshotData = ""
+    private func completeInitialSetup(projectID: String) {
+        isPresentingSetup = false
+        Task {
+            await runtimeStore.loadProjects(select: projectID)
+            hasCompletedInitialLoad = true
+        }
+    }
+
+    private func presentSetup() {
+        isPresentingSetup = true
+    }
+
+    private var shouldPresentRuntimeError: Bool {
+        hasCompletedInitialLoad
+            && !isPresentingSetup
+            && !runtimeStore.isLoading
+            && runtimeStore.errorMessage != nil
+            && runtimeStore.selectedProjectDetail == nil
+            && runtimeStore.projects.isEmpty
+    }
+
+    private func retryLoad() {
+        Task {
+            await runtimeStore.loadProjects()
+            hasCompletedInitialLoad = true
+        }
+    }
+
+    private var minimumWindowSize: CGSize {
+        if shouldPresentSetup {
+            return AppTheme.Layout.setupMinSize
+        }
+
+        if runtimeStore.selectedProjectDetail != nil {
+            return AppTheme.Layout.controlCenterMinSize
+        }
+
+        return AppTheme.Layout.minWindowSize
     }
 }
 
-struct AgentAppFlowBackdrop: View {
-    @Environment(\.colorScheme) private var colorScheme
+private struct RuntimeLoadingView: View {
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            AppCard {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+                    AppBadge(status: .idle)
+                    ProgressView()
+                        .controlSize(.large)
+                    Text("Loading local runtime")
+                        .font(AppTheme.Typography.display(30))
+                    Text("Reading registered projects and runtime health from the local AgentAppFlow daemon.")
+                        .font(AppTheme.Typography.body())
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: 560)
+        }
+    }
+}
+
+private struct RuntimeErrorView: View {
+    let message: String
+    let retryLoad: () -> Void
+    let presentSetup: () -> Void
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: baseColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            AppBackground()
 
-            RadialGradient(
-                colors: [
-                    Color.white.opacity(colorScheme == .dark ? 0.12 : 0.40),
-                    Color.clear
-                ],
-                center: .topLeading,
-                startRadius: 40,
-                endRadius: 520
-            )
-
-            RadialGradient(
-                colors: [
-                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.22),
-                    Color.clear
-                ],
-                center: .bottomTrailing,
-                startRadius: 40,
-                endRadius: 520
-            )
-
-            Circle()
-                .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.20))
-                .frame(width: 300, height: 300)
-                .blur(radius: 120)
-                .offset(x: -260, y: -220)
-
-            Circle()
-                .fill(Color.black.opacity(colorScheme == .dark ? 0.24 : 0.10))
-                .frame(width: 380, height: 380)
-                .blur(radius: 150)
-                .offset(x: 300, y: 220)
-
-            Rectangle()
-                .fill(.ultraThinMaterial)
-
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(colorScheme == .dark ? 0.30 : 0.10),
-                    Color.clear,
-                    Color.black.opacity(colorScheme == .dark ? 0.34 : 0.12)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            RadialGradient(
-                colors: [
-                    Color.clear,
-                    Color.black.opacity(colorScheme == .dark ? 0.34 : 0.14)
-                ],
-                center: .center,
-                startRadius: 220,
-                endRadius: 980
-            )
+            AppCard {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+                    AppBadge(status: .error)
+                    Text("Local runtime unavailable")
+                        .font(AppTheme.Typography.display(30))
+                    Text(message)
+                        .font(AppTheme.Typography.body())
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: AppTheme.Spacing.sm) {
+                        AppButton("Retry", variant: .secondary, action: retryLoad)
+                        AppButton("Open Setup", variant: .primary, action: presentSetup)
+                    }
+                }
+            }
+            .frame(maxWidth: 620)
         }
-        .ignoresSafeArea()
-    }
-
-    private var baseColors: [Color] {
-        if colorScheme == .dark {
-            return [
-                Color(red: 0.18, green: 0.18, blue: 0.20),
-                Color(red: 0.10, green: 0.10, blue: 0.12)
-            ]
-        }
-
-        return [
-            Color(red: 0.92, green: 0.93, blue: 0.95),
-            Color(red: 0.82, green: 0.84, blue: 0.88)
-        ]
-    }
-}
-
-struct GlassSurface: View {
-    let cornerRadius: CGFloat
-    var material: Material = .thinMaterial
-    var tintOpacityDark: Double = 0.05
-    var tintOpacityLight: Double = 0.28
-
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(material)
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(
-                        Color.white.opacity(
-                            colorScheme == .dark ? tintOpacityDark : tintOpacityLight
-                        )
-                    )
-            )
     }
 }
 
 private struct WindowConfigurator: NSViewRepresentable {
+    let minimumSize: CGSize
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
@@ -167,5 +169,6 @@ private struct WindowConfigurator: NSViewRepresentable {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.isMovableByWindowBackground = true
+        window.minSize = minimumSize
     }
 }
