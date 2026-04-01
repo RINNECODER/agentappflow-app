@@ -1,0 +1,480 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5AA90D5A2CCCFA0A4A224744 /* agentappflow_bootstrap.py in Resources */ = {isa = PBXBuildFile; fileRef = 2A5D77288488FB7FB366753D /* agentappflow_bootstrap.py */; };
+		5AD9079D1CF8A8591A9DF374 /* OnboardingFormStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 968CE2DB6D3E5F9FAB000AC6 /* OnboardingFormStateTests.swift */; };
+		828D5F388574630B52F3A586 /* BrutalTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = F46FFB6A4B1E7B47B4569584 /* BrutalTypography.swift */; };
+		8340FEAB1594781DEE22E7F0 /* FirstRunSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 584FFA286F553CA01576FB65 /* FirstRunSetupView.swift */; };
+		8A60A10F834EAC5A08CC5C0B /* BootstrapCLIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 227CE79C80BF9D70456F4755 /* BootstrapCLIService.swift */; };
+		8C9C3AAF3F2472EB410BAE92 /* WorkspaceSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B6F73C34A1D981FFFD6B3D9 /* WorkspaceSnapshotTests.swift */; };
+		8F288B29837B217159D07BEB /* WorkspaceSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2176531E4A0ECBDC87439F16 /* WorkspaceSnapshot.swift */; };
+		945B1F8F2D124CEA5BD828B4 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56B4D7DA286E97F923948A14 /* ContentView.swift */; };
+		D3F624E6966BC7500446FFD2 /* AgentAppFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B70FFE26FBEB7485DCF1FA4E /* AgentAppFlowApp.swift */; };
+		DEFEB631B2384B0B6A731C1A /* BootstrapRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6EAE11AFAF0DB2F22B94F38 /* BootstrapRequest.swift */; };
+		EAAF864C34AABCA2095404BB /* ThemeModePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75CF20D7A16CBA779F111943 /* ThemeModePicker.swift */; };
+		F865971570C92EB8202A8389 /* ControlCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 915655C8CBDBA93D5286E385 /* ControlCenterView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		97F2B6CBAD46192C87E42EA9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6525901C2A5F9FF13769CF7F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C5F8F373ABFF5AFDE88E2BB6;
+			remoteInfo = AgentAppFlow;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		2176531E4A0ECBDC87439F16 /* WorkspaceSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSnapshot.swift; sourceTree = "<group>"; };
+		227CE79C80BF9D70456F4755 /* BootstrapCLIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootstrapCLIService.swift; sourceTree = "<group>"; };
+		2A5D77288488FB7FB366753D /* agentappflow_bootstrap.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = agentappflow_bootstrap.py; sourceTree = "<group>"; };
+		56B4D7DA286E97F923948A14 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		584FFA286F553CA01576FB65 /* FirstRunSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstRunSetupView.swift; sourceTree = "<group>"; };
+		75CF20D7A16CBA779F111943 /* ThemeModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeModePicker.swift; sourceTree = "<group>"; };
+		8B6F73C34A1D981FFFD6B3D9 /* WorkspaceSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSnapshotTests.swift; sourceTree = "<group>"; };
+		915655C8CBDBA93D5286E385 /* ControlCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlCenterView.swift; sourceTree = "<group>"; };
+		968CE2DB6D3E5F9FAB000AC6 /* OnboardingFormStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFormStateTests.swift; sourceTree = "<group>"; };
+		9E8DD259B678897073F02FC7 /* AgentAppFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgentAppFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B70FFE26FBEB7485DCF1FA4E /* AgentAppFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentAppFlowApp.swift; sourceTree = "<group>"; };
+		BD8FC95EE17DE23556CEAE44 /* AgentAppFlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AgentAppFlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6EAE11AFAF0DB2F22B94F38 /* BootstrapRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootstrapRequest.swift; sourceTree = "<group>"; };
+		F46FFB6A4B1E7B47B4569584 /* BrutalTypography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrutalTypography.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1152E1A02A8A245FFD157908 /* AgentAppFlowTests */ = {
+			isa = PBXGroup;
+			children = (
+				968CE2DB6D3E5F9FAB000AC6 /* OnboardingFormStateTests.swift */,
+				8B6F73C34A1D981FFFD6B3D9 /* WorkspaceSnapshotTests.swift */,
+			);
+			path = AgentAppFlowTests;
+			sourceTree = "<group>";
+		};
+		3386B91EDCCF5AB2DAEFD17D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9E8DD259B678897073F02FC7 /* AgentAppFlow.app */,
+				BD8FC95EE17DE23556CEAE44 /* AgentAppFlowTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		37FC9B95A47500EF5087D83C /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B70FFE26FBEB7485DCF1FA4E /* AgentAppFlowApp.swift */,
+				56B4D7DA286E97F923948A14 /* ContentView.swift */,
+				7D5CA6B6B03D314DB6A37F98 /* Models */,
+				AEBB9BCCCED671ACC1419BAF /* Services */,
+				B923B893A932428C2CA1B3E0 /* Views */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		7D5CA6B6B03D314DB6A37F98 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				D6EAE11AFAF0DB2F22B94F38 /* BootstrapRequest.swift */,
+				2176531E4A0ECBDC87439F16 /* WorkspaceSnapshot.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AEBB9BCCCED671ACC1419BAF /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				227CE79C80BF9D70456F4755 /* BootstrapCLIService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		AEC5FD0B219A3A8F9D13BBA1 /* python */ = {
+			isa = PBXGroup;
+			children = (
+				2A5D77288488FB7FB366753D /* agentappflow_bootstrap.py */,
+			);
+			path = python;
+			sourceTree = "<group>";
+		};
+		B923B893A932428C2CA1B3E0 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F46FFB6A4B1E7B47B4569584 /* BrutalTypography.swift */,
+				915655C8CBDBA93D5286E385 /* ControlCenterView.swift */,
+				584FFA286F553CA01576FB65 /* FirstRunSetupView.swift */,
+				75CF20D7A16CBA779F111943 /* ThemeModePicker.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		D4E2CBDB3CA540D7141A3198 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				1152E1A02A8A245FFD157908 /* AgentAppFlowTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		F18890597661A774530B9752 = {
+			isa = PBXGroup;
+			children = (
+				37FC9B95A47500EF5087D83C /* App */,
+				AEC5FD0B219A3A8F9D13BBA1 /* python */,
+				D4E2CBDB3CA540D7141A3198 /* Tests */,
+				3386B91EDCCF5AB2DAEFD17D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		249A198072F6D18A448EE86D /* AgentAppFlowTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 73B1E9F7EF9F4633C749801B /* Build configuration list for PBXNativeTarget "AgentAppFlowTests" */;
+			buildPhases = (
+				5830541BB57C292C751732F3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9E6C7682E277411D22242692 /* PBXTargetDependency */,
+			);
+			name = AgentAppFlowTests;
+			packageProductDependencies = (
+			);
+			productName = AgentAppFlowTests;
+			productReference = BD8FC95EE17DE23556CEAE44 /* AgentAppFlowTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		C5F8F373ABFF5AFDE88E2BB6 /* AgentAppFlow */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 83EFB8C937726E4899D590B8 /* Build configuration list for PBXNativeTarget "AgentAppFlow" */;
+			buildPhases = (
+				B6BD24A12581E58385FC78F3 /* Sources */,
+				D9DCDE6B001B3F5AA0D8C9CA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AgentAppFlow;
+			packageProductDependencies = (
+			);
+			productName = AgentAppFlow;
+			productReference = 9E8DD259B678897073F02FC7 /* AgentAppFlow.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6525901C2A5F9FF13769CF7F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+			};
+			buildConfigurationList = 058A8D904EEDEF50E6D51C15 /* Build configuration list for PBXProject "AgentAppFlow" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = F18890597661A774530B9752;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C5F8F373ABFF5AFDE88E2BB6 /* AgentAppFlow */,
+				249A198072F6D18A448EE86D /* AgentAppFlowTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D9DCDE6B001B3F5AA0D8C9CA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5AA90D5A2CCCFA0A4A224744 /* agentappflow_bootstrap.py in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5830541BB57C292C751732F3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5AD9079D1CF8A8591A9DF374 /* OnboardingFormStateTests.swift in Sources */,
+				8C9C3AAF3F2472EB410BAE92 /* WorkspaceSnapshotTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B6BD24A12581E58385FC78F3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D3F624E6966BC7500446FFD2 /* AgentAppFlowApp.swift in Sources */,
+				8A60A10F834EAC5A08CC5C0B /* BootstrapCLIService.swift in Sources */,
+				DEFEB631B2384B0B6A731C1A /* BootstrapRequest.swift in Sources */,
+				828D5F388574630B52F3A586 /* BrutalTypography.swift in Sources */,
+				945B1F8F2D124CEA5BD828B4 /* ContentView.swift in Sources */,
+				F865971570C92EB8202A8389 /* ControlCenterView.swift in Sources */,
+				8340FEAB1594781DEE22E7F0 /* FirstRunSetupView.swift in Sources */,
+				EAAF864C34AABCA2095404BB /* ThemeModePicker.swift in Sources */,
+				8F288B29837B217159D07BEB /* WorkspaceSnapshot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9E6C7682E277411D22242692 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C5F8F373ABFF5AFDE88E2BB6 /* AgentAppFlow */;
+			targetProxy = 97F2B6CBAD46192C87E42EA9 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		04A4E46E4E44587BE92E6259 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rinnecoder.agentappflow;
+				PRODUCT_NAME = AgentAppFlow;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		2EA3A274FBB196E79FEC9DE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentAppFlow.app/Contents/MacOS/AgentAppFlow";
+			};
+			name = Debug;
+		};
+		41A5F74F07D3C77210D86554 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentAppFlow.app/Contents/MacOS/AgentAppFlow";
+			};
+			name = Release;
+		};
+		5F387E7BFFC2D21C62F510A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		8E0DB0B20A9F87BEC1C95358 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		BA84D2396EFC5EC2D41CF1A4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rinnecoder.agentappflow;
+				PRODUCT_NAME = AgentAppFlow;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		058A8D904EEDEF50E6D51C15 /* Build configuration list for PBXProject "AgentAppFlow" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5F387E7BFFC2D21C62F510A7 /* Debug */,
+				8E0DB0B20A9F87BEC1C95358 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		73B1E9F7EF9F4633C749801B /* Build configuration list for PBXNativeTarget "AgentAppFlowTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2EA3A274FBB196E79FEC9DE5 /* Debug */,
+				41A5F74F07D3C77210D86554 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		83EFB8C937726E4899D590B8 /* Build configuration list for PBXNativeTarget "AgentAppFlow" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				04A4E46E4E44587BE92E6259 /* Debug */,
+				BA84D2396EFC5EC2D41CF1A4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 6525901C2A5F9FF13769CF7F /* Project object */;
+}
