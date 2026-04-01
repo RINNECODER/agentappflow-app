@@ -81,7 +81,7 @@ Derived state belongs in `.agentappflow/cache/` and should usually be gitignored
 
 The app also maintains runtime-owned local state outside the repository:
 - `projects.json`: the registry of projects shown in the control center
-- `sessions.json`: session records and counts for registered projects
+- `sessions/<project-id>.ndjson`: append-only session snapshots stored per registered project
 
 By default those files live under `~/Library/Application Support/AgentAppFlow/runtime/`. Tests and local tooling can redirect them with `AGENTAPPFLOW_RUNTIME_HOME`.
 

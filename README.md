@@ -12,8 +12,8 @@ AgentAppFlow App is a Mac-first local control center for project-aware AI develo
 
 ## Architecture
 - Swift talks to the Python core over local JSON-RPC on a Unix domain socket.
-- The runtime command surface implemented in this milestone is `health_check`, `register_project`, `list_projects`, `get_project`, and `start_session`, with `bootstrap_project` still available for onboarding.
-- Runtime-backed project and session state live under `~/Library/Application Support/AgentAppFlow/runtime/` unless `AGENTAPPFLOW_RUNTIME_HOME` is set for tests or local overrides.
+- The runtime command surface implemented in this milestone is `health_check`, `bootstrap_project`, `register_project`, `list_projects`, `get_project`, `start_session`, `record_task_result`, and `end_session`.
+- Runtime-backed project state lives in `~/Library/Application Support/AgentAppFlow/runtime/projects.json`, and session history is stored as append-only per-project NDJSON under `~/Library/Application Support/AgentAppFlow/runtime/sessions/`, unless `AGENTAPPFLOW_RUNTIME_HOME` is set for tests or local overrides.
 - The control center restores the selected project by persisting its runtime project ID and reloading it through the local runtime on launch.
 - Python delegates privileged execution and guarded writes to Rust over JSON via stdio.
 - Each managed user project gets a `.agentappflow/` directory that stores project config, rules, templates, memory summaries, and framework proposals.

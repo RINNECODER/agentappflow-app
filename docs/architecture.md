@@ -67,8 +67,17 @@ Implemented in the current runtime foundation:
 - `get_project`
 - `start_session`
 
-Planned for later milestones:
+Implemented in the runtime core:
+- `health_check`
+- `bootstrap_project`
+- `register_project`
+- `list_projects`
+- `get_project`
+- `start_session`
 - `record_task_result`
+- `end_session`
+
+Planned for later milestones:
 - `generate_retrospective`
 - `propose_framework_update`
 - `apply_framework_update`
@@ -80,7 +89,7 @@ These commands are local APIs, not network APIs.
 
 Runtime-owned state is stored outside the repo under:
 - `~/Library/Application Support/AgentAppFlow/runtime/projects.json`
-- `~/Library/Application Support/AgentAppFlow/runtime/sessions.json`
+- `~/Library/Application Support/AgentAppFlow/runtime/sessions/<project-id>.ndjson`
 
 Tests and local tooling can override that location with `AGENTAPPFLOW_RUNTIME_HOME`.
 
