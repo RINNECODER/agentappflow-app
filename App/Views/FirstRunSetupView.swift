@@ -3,6 +3,7 @@ import SwiftUI
 
 enum SetupStage: Int, CaseIterable, Identifiable {
     case intro
+    case runtimeCheck
     case repository
     case projectName
     case projectType
@@ -10,7 +11,8 @@ enum SetupStage: Int, CaseIterable, Identifiable {
     case agentTool
     case approval
     case improvement
-    case launch
+    case installGate
+    case complete
 
     var id: Int { rawValue }
 
@@ -18,6 +20,8 @@ enum SetupStage: Int, CaseIterable, Identifiable {
         switch self {
         case .intro:
             "First Launch"
+        case .runtimeCheck:
+            "Python Runtime"
         case .repository:
             "Repository"
         case .projectName:
@@ -32,31 +36,37 @@ enum SetupStage: Int, CaseIterable, Identifiable {
             "Approval"
         case .improvement:
             "Improvement"
-        case .launch:
-            "Initialize"
+        case .installGate:
+            "Install Gate"
+        case .complete:
+            "Complete"
         }
     }
 
     var prompt: String {
         switch self {
         case .intro:
-            "Local memory, project guardrails, no backend."
+            "Local memory, repo-owned rules, no backend required."
+        case .runtimeCheck:
+            "Verify the local Python runtime before the framework writes anything."
         case .repository:
-            "Point AgentAppFlow at the repository you want to wire first."
+            "Point AgentAppFlow at the git repository you want to wire first."
         case .projectName:
-            "Name the workspace and describe what the AI should understand on first contact."
+            "Name the workspace and give the AI a compact project brief."
         case .projectType:
             "Pick the base shape for the framework contract."
         case .platforms:
             "Choose the platforms this repo actively targets."
         case .agentTool:
-            "Select the agent runtime you want the adapters to prepare."
+            "Select the agent runtime adapters this repo needs."
         case .approval:
-            "Define how aggressively the framework can act."
+            "Decide how framework-owned files can change."
         case .improvement:
             "Set how the framework evolves after each task."
-        case .launch:
-            "Review the contract and write the first files."
+        case .installGate:
+            "Review the exact files the bootstrap will stage."
+        case .complete:
+            "Your first workspace is ready to open."
         }
     }
 
@@ -64,6 +74,8 @@ enum SetupStage: Int, CaseIterable, Identifiable {
         switch self {
         case .intro:
             ["Next"]
+        case .runtimeCheck:
+            ["Back", "Next"]
         case .repository:
             [SetupAccessibilityLabel.repositoryPath, "Browse", "Back", "Next"]
         case .projectName:
@@ -78,8 +90,10 @@ enum SetupStage: Int, CaseIterable, Identifiable {
             ApprovalMode.allCases.map(\.displayName) + ["Back", "Next"]
         case .improvement:
             ImprovementMode.allCases.map(\.displayName) + ["Back", "Next"]
-        case .launch:
-            ["Back", "Initialize"]
+        case .installGate:
+            ["Back", "Initialize", "Open Existing", "Re-bootstrap"]
+        case .complete:
+            ["Open Control Center"]
         }
     }
 }
@@ -90,29 +104,90 @@ enum SetupAccessibilityLabel {
     static let projectBrief = "Project brief"
 }
 
+enum SetupBootstrapError: Equatable, Identifiable {
+    case bootstrapAlreadyExists(path: String)
+    case permissionDenied(path: String)
+    case generic(message: String)
+
+    var id: String {
+        switch self {
+        case .bootstrapAlreadyExists(let path):
+            "bootstrap-\(path)"
+        case .permissionDenied(let path):
+            "permission-\(path)"
+        case .generic(let message):
+            "generic-\(message)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .bootstrapAlreadyExists:
+            "Bootstrap already exists"
+        case .permissionDenied:
+            "Permission denied"
+        case .generic:
+            "Bootstrap blocked"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .bootstrapAlreadyExists(let path):
+            "A previous AgentAppFlow contract already exists at \(path). Re-bootstrap the repo or open the existing workspace."
+        case .permissionDenied(let path):
+            "AgentAppFlow cannot write inside \(path). Choose a writable repository or adjust permissions."
+        case .generic(let message):
+            message
+        }
+    }
+}
+
 struct FirstRunSetupView: View {
     let runtimeService: AgentRuntimeServing
     let completeInitialSetup: (String) -> Void
 
-    @State private var currentStage: SetupStage = .intro
-    @State private var formState = OnboardingFormState()
+    @State private var currentStage: SetupStage
+    @State private var formState: OnboardingFormState
     @State private var commandResult: BootstrapCommandResult?
     @State private var registeredProject: RegisteredProject?
-    @State private var errorMessage: String?
+    @State private var bootstrapError: SetupBootstrapError?
     @State private var isInitializing = false
+    @State private var pythonInspection: PythonRuntimeInspection
 
     init(
         runtimeService: AgentRuntimeServing,
         initialStage: SetupStage = .intro,
+        initialFormState: OnboardingFormState = OnboardingFormState(),
+        initialCommandResult: BootstrapCommandResult? = nil,
+        initialRegisteredProject: RegisteredProject? = nil,
+        initialBootstrapError: SetupBootstrapError? = nil,
+        initialPythonInspection: PythonRuntimeInspection = .checking,
         completeInitialSetup: @escaping (String) -> Void
     ) {
         self.runtimeService = runtimeService
         self.completeInitialSetup = completeInitialSetup
         _currentStage = State(initialValue: initialStage)
+        _formState = State(initialValue: initialFormState)
+        _commandResult = State(initialValue: initialCommandResult)
+        _registeredProject = State(initialValue: initialRegisteredProject)
+        _bootstrapError = State(initialValue: initialBootstrapError)
+        _pythonInspection = State(initialValue: initialPythonInspection)
     }
 
     private var stepNumber: Int {
         currentStage.rawValue + 1
+    }
+
+    private var validationSnapshot: OnboardingValidationSnapshot {
+        formState.validationSnapshot()
+    }
+
+    private var installPreviewPlan: BootstrapPreviewPlan? {
+        guard let request = try? formState.makeRequest() else {
+            return nil
+        }
+        return BootstrapPreviewPlan(request: request)
     }
 
     var body: some View {
@@ -137,10 +212,12 @@ struct FirstRunSetupView: View {
                     currentStage: currentStage,
                     canContinue: canContinue,
                     isInitializing: isInitializing,
-                    didSucceed: registeredProject != nil,
+                    bootstrapError: bootstrapError,
                     goBack: goBack,
                     goForward: goForward,
                     initializeProject: initializeProject,
+                    openExistingWorkspace: openExistingWorkspace,
+                    rebootstrapProject: rebootstrapProject,
                     openWorkspace: openWorkspace
                 )
             }
@@ -153,6 +230,20 @@ struct FirstRunSetupView: View {
             minWidth: AppTheme.Layout.setupMinSize.width,
             minHeight: AppTheme.Layout.setupMinSize.height
         )
+        .onChange(of: formState) { _, _ in
+            if currentStage != .complete {
+                commandResult = nil
+                registeredProject = nil
+            }
+            bootstrapError = nil
+        }
+        .task {
+            guard pythonInspection.status == .checking else { return }
+            let inspection = await Task.detached(priority: .userInitiated) {
+                PythonRuntimeLocator.inspect()
+            }.value
+            pythonInspection = inspection
+        }
     }
 
     @ViewBuilder
@@ -160,15 +251,19 @@ struct FirstRunSetupView: View {
         switch currentStage {
         case .intro:
             IntroStageView()
+        case .runtimeCheck:
+            PythonRuntimeStageView(inspection: pythonInspection)
         case .repository:
             RepositoryStageView(
                 projectPath: $formState.projectPath,
+                projectPathState: validationSnapshot.projectPathState,
                 chooseRepositoryPath: chooseProjectPath
             )
         case .projectName:
             ProjectNameStageView(
                 availableHeight: availableHeight,
                 projectName: $formState.projectName,
+                projectNameState: validationSnapshot.projectNameState,
                 projectDescription: $formState.projectDescription
             )
         case .projectType:
@@ -181,12 +276,17 @@ struct FirstRunSetupView: View {
             ApprovalStageView(selection: $formState.approvalMode)
         case .improvement:
             ImprovementStageView(selection: $formState.improvementMode)
-        case .launch:
-            LaunchStageView(
+        case .installGate:
+            InstallGateStageView(
                 formState: formState,
+                previewPlan: installPreviewPlan,
                 isInitializing: isInitializing,
-                commandResult: commandResult,
-                errorMessage: errorMessage
+                bootstrapError: bootstrapError
+            )
+        case .complete:
+            CompletionStageView(
+                project: registeredProject,
+                commandResult: commandResult
             )
         }
     }
@@ -195,10 +295,12 @@ struct FirstRunSetupView: View {
         switch currentStage {
         case .intro:
             true
+        case .runtimeCheck:
+            pythonInspection.canProceed
         case .repository:
-            !formState.projectPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            formState.projectPathError() == nil
         case .projectName:
-            !formState.projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            formState.projectNameError() == nil
         case .projectType:
             true
         case .platforms:
@@ -209,7 +311,9 @@ struct FirstRunSetupView: View {
             true
         case .improvement:
             true
-        case .launch:
+        case .installGate:
+            installPreviewPlan != nil && !isInitializing
+        case .complete:
             registeredProject != nil
         }
     }
@@ -220,6 +324,9 @@ struct FirstRunSetupView: View {
     }
 
     private func goForward() {
+        if currentStage == .repository {
+            formState.populateProjectNameIfNeeded()
+        }
         guard let next = SetupStage(rawValue: currentStage.rawValue + 1) else { return }
         currentStage = next
     }
@@ -239,27 +346,53 @@ struct FirstRunSetupView: View {
     }
 
     @MainActor
-    private func initializeProject() async {
-        errorMessage = nil
+    private func initializeProject(force: Bool = false) async {
         commandResult = nil
         registeredProject = nil
-        isInitializing = true
+        bootstrapError = nil
 
-        defer {
-            isInitializing = false
+        guard pythonInspection.canProceed else {
+            currentStage = .runtimeCheck
+            return
         }
+
+        isInitializing = true
+        defer { isInitializing = false }
 
         do {
             let request = try formState.makeRequest()
-            let result = try await runtimeService.bootstrap(request: request, force: false)
+            let result = try await runtimeService.bootstrap(request: request, force: force)
             let project = try await runtimeService.registerProject(
                 request: request,
                 bootstrapResult: result
             )
             commandResult = result
             registeredProject = project
+            currentStage = .complete
+        } catch let error as StubRuntimeServiceError {
+            bootstrapError = mapBootstrapError(error)
         } catch {
-            errorMessage = error.localizedDescription
+            bootstrapError = .generic(message: error.localizedDescription)
+        }
+    }
+
+    @MainActor
+    private func rebootstrapProject() async {
+        await initializeProject(force: true)
+    }
+
+    @MainActor
+    private func openExistingWorkspace() async {
+        do {
+            let projects = try await runtimeService.listProjects()
+            guard let project = projects.first(where: { $0.projectPath == formState.trimmedProjectPath }) else {
+                bootstrapError = .generic(message: "No registered workspace matches this repository yet.")
+                return
+            }
+            registeredProject = project
+            currentStage = .complete
+        } catch {
+            bootstrapError = .generic(message: error.localizedDescription)
         }
     }
 
@@ -267,9 +400,20 @@ struct FirstRunSetupView: View {
         guard let registeredProject else { return }
         completeInitialSetup(registeredProject.id)
     }
+
+    private func mapBootstrapError(_ error: StubRuntimeServiceError) -> SetupBootstrapError {
+        switch error {
+        case .bootstrapAlreadyExists(let path):
+            return .bootstrapAlreadyExists(path: path)
+        case .permissionDenied(let path):
+            return .permissionDenied(path: path)
+        case .projectNotFound:
+            return .generic(message: error.localizedDescription)
+        }
+    }
 }
 
-private struct SetupStepHeader: View {
+struct SetupStepHeader: View {
     let stepNumber: Int
     let totalSteps: Int
     let title: String
@@ -294,7 +438,7 @@ private struct SetupStepHeader: View {
     }
 }
 
-private struct SetupStepMeter: View {
+struct SetupStepMeter: View {
     let stepNumber: Int
     let totalSteps: Int
 
@@ -310,7 +454,7 @@ private struct SetupStepMeter: View {
     }
 }
 
-private struct IntroStageView: View {
+struct IntroStageView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.xl) {
             Text("Wire one repo.\nGive it memory.\nKeep it local.")
@@ -331,19 +475,108 @@ private struct IntroStageView: View {
                 SetupSpotlightCard(
                     eyebrow: "FIRST PASS",
                     title: "One controlled bootstrap",
-                    copy: "Write `.agentappflow`, `AGENTS.md`, and `CLAUDE.md` in one launch."
+                    copy: "Stage `.agentappflow`, `AGENTS.md`, and adapter notes in one pass."
                 )
             }
 
             VStack(spacing: AppTheme.Spacing.sm) {
-                SetupFactRow(label: "NOW", value: "Create the first local contract for the repo you are about to steer.")
-                SetupFactRow(label: "LATER", value: "Rust stays reserved for guarded execution once the framework is live.")
+                SetupFactRow(label: "NOW", value: "Register the first local workspace and verify the runtime before any files are touched.")
+                SetupFactRow(label: "LATER", value: "Swap the stub runtime for the daemon once the frontend contract is locked.")
             }
         }
     }
 }
 
-private struct SetupSpotlightCard: View {
+struct PythonRuntimeStageView: View {
+    let inspection: PythonRuntimeInspection
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
+            SetupRuntimeHero(inspection: inspection)
+
+            if inspection.status == .checking {
+                ProgressView("Inspecting Python runtime...")
+                    .controlSize(.large)
+            } else if inspection.canProceed {
+                SetupInlineGuidanceCard(
+                    label: "READY",
+                    value: "The runtime check passed. Continue into repository registration."
+                )
+            } else {
+                SetupBootstrapErrorCard(
+                    title: inspection.title,
+                    detail: inspection.detail
+                )
+            }
+        }
+    }
+}
+
+struct SetupRuntimeHero: View {
+    let inspection: PythonRuntimeInspection
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.relaxed) {
+            HStack(alignment: .top, spacing: AppTheme.Spacing.lg) {
+                RoundedRectangle(cornerRadius: AppTheme.Radius.xl, style: .continuous)
+                    .fill(.thinMaterial)
+                    .overlay(
+                        AppIcon(
+                            systemName: iconName,
+                            size: 28,
+                            color: iconColor
+                        )
+                    )
+                    .frame(width: 96, height: 96)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+                    Text(inspection.title)
+                        .font(Font.brutalHero(34))
+                    Text(inspection.detail)
+                        .font(Font.brutalBody(15, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            HStack(spacing: AppTheme.Spacing.sm) {
+                SetupFactRow(label: "STATE", value: inspection.statusCopy)
+                SetupFactRow(label: "PATH", value: inspection.interpreterPath ?? "Unavailable")
+            }
+        }
+        .padding(AppTheme.Spacing.relaxed)
+        .background(BrutalInset(selected: inspection.canProceed))
+    }
+
+    private var iconName: String {
+        switch inspection.status {
+        case .checking:
+            "hourglass"
+        case .found:
+            "checkmark.circle.fill"
+        case .missing:
+            "exclamationmark.triangle.fill"
+        case .unsupportedVersion:
+            "xmark.octagon.fill"
+        }
+    }
+
+    private var iconColor: Color {
+        switch inspection.status {
+        case .checking:
+            AppTheme.Colors.idle
+        case .found:
+            AppTheme.Colors.healthy
+        case .missing:
+            AppTheme.Colors.warning
+        case .unsupportedVersion:
+            AppTheme.Colors.destructive
+        }
+    }
+}
+
+struct SetupSpotlightCard: View {
     let eyebrow: String
     let title: String
     let copy: String
@@ -371,7 +604,7 @@ private struct SetupSpotlightCard: View {
     var body: some View { bodyView }
 }
 
-private struct SetupFactRow: View {
+struct SetupFactRow: View {
     let label: String
     let value: String
 
@@ -390,8 +623,9 @@ private struct SetupFactRow: View {
     }
 }
 
-private struct RepositoryStageView: View {
+struct RepositoryStageView: View {
     @Binding var projectPath: String
+    let projectPathState: AppFieldState
     let chooseRepositoryPath: () -> Void
 
     var body: some View {
@@ -406,6 +640,7 @@ private struct RepositoryStageView: View {
                     title: nil,
                     prompt: "Repository path",
                     text: $projectPath,
+                    state: projectPathState,
                     usesMonospaceFont: true,
                     accessibilityLabel: SetupAccessibilityLabel.repositoryPath
                 )
@@ -416,7 +651,7 @@ private struct RepositoryStageView: View {
     }
 }
 
-private struct SetupRepoTargetCard: View {
+struct SetupRepoTargetCard: View {
     let projectPath: String
 
     var body: some View {
@@ -450,9 +685,10 @@ private struct SetupRepoTargetCard: View {
     }
 }
 
-private struct ProjectNameStageView: View {
+struct ProjectNameStageView: View {
     let availableHeight: CGFloat
     @Binding var projectName: String
+    let projectNameState: AppFieldState
     @Binding var projectDescription: String
 
     var body: some View {
@@ -464,6 +700,7 @@ private struct ProjectNameStageView: View {
                 title: nil,
                 prompt: "LegalPocketAI",
                 text: $projectName,
+                state: projectNameState,
                 accessibilityLabel: SetupAccessibilityLabel.projectName
             )
 
@@ -477,7 +714,7 @@ private struct ProjectNameStageView: View {
     }
 }
 
-private struct SetupIdentityCard: View {
+struct SetupIdentityCard: View {
     let availableHeight: CGFloat
     let projectName: String
     @Binding var projectDescription: String
@@ -543,7 +780,7 @@ private struct SetupIdentityCard: View {
     }
 }
 
-private struct SetupInlineGuidanceCard: View {
+struct SetupInlineGuidanceCard: View {
     let label: String
     let value: String
 
@@ -577,7 +814,7 @@ private extension Comparable {
     }
 }
 
-private struct ProjectTypeStageView: View {
+struct ProjectTypeStageView: View {
     @Binding var selection: ProjectType
 
     var body: some View {
@@ -596,7 +833,7 @@ private struct ProjectTypeStageView: View {
     }
 }
 
-private struct PlatformStageView: View {
+struct PlatformStageView: View {
     @Binding var selection: Set<PlatformChoice>
 
     var body: some View {
@@ -620,7 +857,7 @@ private struct PlatformStageView: View {
     }
 }
 
-private struct AgentStageView: View {
+struct AgentStageView: View {
     @Binding var selection: Set<AgentToolChoice>
 
     var body: some View {
@@ -644,7 +881,7 @@ private struct AgentStageView: View {
     }
 }
 
-private struct ApprovalStageView: View {
+struct ApprovalStageView: View {
     @Binding var selection: ApprovalMode
 
     var body: some View {
@@ -663,7 +900,7 @@ private struct ApprovalStageView: View {
     }
 }
 
-private struct ImprovementStageView: View {
+struct ImprovementStageView: View {
     @Binding var selection: ImprovementMode
 
     var body: some View {
@@ -682,15 +919,19 @@ private struct ImprovementStageView: View {
     }
 }
 
-private struct LaunchStageView: View {
+struct InstallGateStageView: View {
     let formState: OnboardingFormState
+    let previewPlan: BootstrapPreviewPlan?
     let isInitializing: Bool
-    let commandResult: BootstrapCommandResult?
-    let errorMessage: String?
+    let bootstrapError: SetupBootstrapError?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
             SetupLaunchHero(formState: formState)
+
+            if let previewPlan {
+                SetupPreviewPanel(previewPlan: previewPlan)
+            }
 
             VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
                 SetupFactRow(label: "PATH", value: formState.projectPath)
@@ -707,46 +948,17 @@ private struct LaunchStageView: View {
                     .controlSize(.large)
             }
 
-            if let commandResult {
-                VStack(alignment: .leading, spacing: AppTheme.Spacing.compact) {
-                    Text("Created")
-                        .font(Font.brutalMeta(12, weight: .black))
-                        .textCase(.uppercase)
-                        .foregroundStyle(.secondary)
-
-                    ForEach(commandResult.created, id: \.self) { item in
-                        Text(item)
-                            .font(.system(size: 13, weight: .medium, design: .monospaced))
-                    }
-
-                if !commandResult.skipped.isEmpty {
-                        AppDivider()
-                        Text("Skipped")
-                            .font(Font.brutalMeta(12, weight: .black))
-                            .textCase(.uppercase)
-                            .foregroundStyle(.secondary)
-
-                        ForEach(commandResult.skipped, id: \.self) { item in
-                            Text(item)
-                                .font(.system(size: 13, weight: .medium, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .padding(AppTheme.Spacing.regular)
-                .background(BrutalInset())
-            }
-
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(Font.brutalBody(14, weight: .semibold))
-                    .foregroundStyle(.red)
+            if let bootstrapError {
+                SetupBootstrapErrorCard(
+                    title: bootstrapError.title,
+                    detail: bootstrapError.detail
+                )
             }
         }
     }
 }
 
-private struct SetupLaunchHero: View {
+struct SetupLaunchHero: View {
     let formState: OnboardingFormState
 
     var body: some View {
@@ -767,7 +979,7 @@ private struct SetupLaunchHero: View {
                     .textCase(.uppercase)
                 Text(formState.projectName)
                     .font(Font.brutalHero(34))
-                Text("The first launch writes the repo contract, adapter files, and starter memory structure in one pass.")
+                Text("The stub bootstrap will register the repo, adapter files, and starter memory structure without calling the live daemon.")
                     .font(Font.brutalBody(14, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
@@ -777,39 +989,135 @@ private struct SetupLaunchHero: View {
     }
 }
 
-private struct SetupFooter: View {
+struct SetupPreviewPanel: View {
+    let previewPlan: BootstrapPreviewPlan
+
+    var body: some View {
+        AppCard {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+                Text("Planned Writes")
+                    .font(AppTheme.Typography.mono(12, weight: .black))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+
+                ForEach(previewPlan.treeItems, id: \.self) { item in
+                    Text(item)
+                        .font(AppTheme.Typography.mono(13, weight: .medium))
+                }
+
+                AppDivider()
+
+                Text(previewPlan.approvalSummary)
+                    .font(AppTheme.Typography.body(13, weight: .bold))
+                Text(previewPlan.improvementSummary)
+                    .font(AppTheme.Typography.body(13, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+struct SetupBootstrapErrorCard: View {
+    let title: String
+    let detail: String
+
+    var body: some View {
+        AppCard {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+                Text(title)
+                    .font(AppTheme.Typography.headline(18, weight: .black))
+                Text(detail)
+                    .font(AppTheme.Typography.body(14, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+struct CompletionStageView: View {
+    let project: RegisteredProject?
+    let commandResult: BootstrapCommandResult?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
+            AppCard {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+                    AppBadge(status: .healthy)
+                    Text("Workspace ready")
+                        .font(AppTheme.Typography.display(34))
+                    Text(project?.projectName ?? "Registered workspace")
+                        .font(AppTheme.Typography.headline(22, weight: .black))
+                    Text(project?.projectPath ?? "Unknown path")
+                        .font(AppTheme.Typography.mono(13, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if let commandResult {
+                AppCard {
+                    VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+                        Text("Created")
+                            .font(AppTheme.Typography.mono(12, weight: .black))
+                            .textCase(.uppercase)
+                            .foregroundStyle(.secondary)
+
+                        ForEach(commandResult.created, id: \.self) { item in
+                            Text(item)
+                                .font(AppTheme.Typography.mono(13, weight: .medium))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct SetupFooter: View {
     let currentStage: SetupStage
     let canContinue: Bool
     let isInitializing: Bool
-    let didSucceed: Bool
+    let bootstrapError: SetupBootstrapError?
     let goBack: () -> Void
     let goForward: () -> Void
-    let initializeProject: @MainActor () async -> Void
+    let initializeProject: @MainActor (Bool) async -> Void
+    let openExistingWorkspace: @MainActor () async -> Void
+    let rebootstrapProject: @MainActor () async -> Void
     let openWorkspace: () -> Void
 
     var body: some View {
         HStack(spacing: AppTheme.Spacing.sm) {
-            if currentStage != .intro {
+            if currentStage != .intro && currentStage != .complete {
                 AppButton("Back", variant: .secondary, action: goBack)
             }
 
             Spacer()
 
             switch currentStage {
-            case .launch:
-                if didSucceed {
-                    AppButton("Open Control Center", variant: .primary, action: openWorkspace)
+            case .installGate:
+                if case .bootstrapAlreadyExists = bootstrapError {
+                    AppButton("Open Existing", variant: .secondary) {
+                        Task { await openExistingWorkspace() }
+                    }
+                    AppButton(
+                        "Re-bootstrap",
+                        variant: .primary,
+                        isLoading: isInitializing,
+                        isDisabled: isInitializing
+                    ) {
+                        Task { await rebootstrapProject() }
+                    }
                 } else {
                     AppButton(
                         "Initialize",
                         variant: .primary,
                         isLoading: isInitializing,
-                        isDisabled: isInitializing,
-                        action: {
-                            Task { await initializeProject() }
-                        }
-                    )
+                        isDisabled: !canContinue || isInitializing
+                    ) {
+                        Task { await initializeProject(false) }
+                    }
                 }
+            case .complete:
+                AppButton("Open Control Center", variant: .primary, action: openWorkspace)
             default:
                 AppButton(
                     "Next",
@@ -822,7 +1130,7 @@ private struct SetupFooter: View {
     }
 }
 
-private struct SetupChoiceGrid<Content: View>: View {
+struct SetupChoiceGrid<Content: View>: View {
     @ViewBuilder let content: Content
 
     private let columns = [
@@ -836,12 +1144,12 @@ private struct SetupChoiceGrid<Content: View>: View {
     }
 }
 
-private enum SetupChoiceStyle {
+enum SetupChoiceStyle {
     case single
     case multiple
 }
 
-private struct SetupChoiceCard: View {
+struct SetupChoiceCard: View {
     let title: String
     let subtitle: String
     let symbolName: String
@@ -891,7 +1199,7 @@ private struct SetupChoiceCard: View {
     }
 }
 
-private struct SetupSelectionIndicator: View {
+struct SetupSelectionIndicator: View {
     let isSelected: Bool
     let style: SetupChoiceStyle
 

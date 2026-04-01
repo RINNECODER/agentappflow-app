@@ -27,4 +27,25 @@ final class WorkspaceSnapshotTests: XCTestCase {
         XCTAssertEqual(AppearanceMode.light.colorScheme, .light)
         XCTAssertEqual(AppearanceMode.dark.colorScheme, .dark)
     }
+
+    func testSnapshotDecodeAcceptsLegacyManualApprovalMode() {
+        let rawSnapshot = """
+        {
+          "projectName": "LegalPocketAI",
+          "projectPath": "/tmp/LegalPocketAI",
+          "projectType": "ios_app",
+          "platforms": ["ios"],
+          "agentTools": ["codex"],
+          "approvalMode": "manual",
+          "improvementMode": "observe",
+          "createdItems": ["AGENTS.md"],
+          "skippedItems": [],
+          "initializedAt": "2025-03-31T20:00:00Z"
+        }
+        """
+
+        let decoded = WorkspaceSnapshot.decode(from: rawSnapshot)
+
+        XCTAssertEqual(decoded?.approvalMode, .observe)
+    }
 }

@@ -13,7 +13,7 @@ final class AppRuntimeStore: ObservableObject {
     private let selectedProjectIDKey: String
 
     init(
-        runtimeService: AgentRuntimeServing = AgentRuntimeService(),
+        runtimeService: AgentRuntimeServing = AppRuntimeServiceFactory.makeDefaultService(),
         defaults: UserDefaults = .standard,
         selectedProjectIDKey: String = "selectedRegisteredProjectID"
     ) {

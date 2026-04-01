@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		070DB00611E4271D07EC23F6 /* AgentRuntimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDBC251F7934202B7D97302 /* AgentRuntimeService.swift */; };
 		21EC11AFEFC9FA4C31F6955F /* RuntimeStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E329E5EBAC82AD4996D0D918 /* RuntimeStoreTests.swift */; };
+		4262D02CCF636ABE400BF051 /* StubAgentRuntimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A4A5D210333C64A54083CB /* StubAgentRuntimeService.swift */; };
 		53941C75F9E397AF98B72683 /* RuntimeStoreTests.swift.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6187EAEBA1E79BA6F0FCAE2B /* RuntimeStoreTests.swift.plist */; };
 		5AA90D5A2CCCFA0A4A224744 /* agentappflow_bootstrap.py in Resources */ = {isa = PBXBuildFile; fileRef = 2A5D77288488FB7FB366753D /* agentappflow_bootstrap.py */; };
 		5AD9079D1CF8A8591A9DF374 /* OnboardingFormStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 968CE2DB6D3E5F9FAB000AC6 /* OnboardingFormStateTests.swift */; };
@@ -50,6 +51,7 @@
 		2176531E4A0ECBDC87439F16 /* WorkspaceSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSnapshot.swift; sourceTree = "<group>"; };
 		227CE79C80BF9D70456F4755 /* BootstrapCLIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BootstrapCLIService.swift; sourceTree = "<group>"; };
 		228A843A3F16702445112BE8 /* PythonRuntimeLocatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PythonRuntimeLocatorTests.swift; sourceTree = "<group>"; };
+		29A4A5D210333C64A54083CB /* StubAgentRuntimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubAgentRuntimeService.swift; sourceTree = "<group>"; };
 		2A5D77288488FB7FB366753D /* agentappflow_bootstrap.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = agentappflow_bootstrap.py; sourceTree = "<group>"; };
 		3A13218F4E93F0EE782358E5 /* RuntimeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeModels.swift; sourceTree = "<group>"; };
 		3F4E610D27937D8F06ADCE01 /* runtime.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = runtime.py; sourceTree = "<group>"; };
@@ -150,6 +152,7 @@
 				DD5DEA93ABBC065E5D3C12AE /* AppRuntimeStore.swift */,
 				227CE79C80BF9D70456F4755 /* BootstrapCLIService.swift */,
 				E1B0F1612AD904A2ACA9B1F1 /* PythonRuntimeLocator.swift */,
+				29A4A5D210333C64A54083CB /* StubAgentRuntimeService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -335,6 +338,7 @@
 				A27ACEDE4E7DF23D175EDC6A /* NavigationShell.swift in Sources */,
 				D30B002DD4581B210076FA66 /* PythonRuntimeLocator.swift in Sources */,
 				9421ECE948C9A6D4CCB6FAF2 /* RuntimeModels.swift in Sources */,
+				4262D02CCF636ABE400BF051 /* StubAgentRuntimeService.swift in Sources */,
 				65965261B82CE14F710DC5EB /* ThemeController.swift in Sources */,
 				EAAF864C34AABCA2095404BB /* ThemeModePicker.swift in Sources */,
 				8F288B29837B217159D07BEB /* WorkspaceSnapshot.swift in Sources */,

@@ -105,27 +105,31 @@ private struct ControlCenterSidebar: View {
                     .foregroundStyle(AppTheme.Colors.foregroundSecondary(for: colorScheme))
                     .textCase(.uppercase)
 
-                ForEach(store.projects) { project in
-                    Button {
-                        Task {
-                            await store.selectProject(id: project.id)
-                        }
-                    } label: {
-                        VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
-                            Text(project.projectName.uppercased())
-                                .font(AppTheme.Typography.headline(14, weight: .black))
-                                .lineLimit(1)
-                            Text(project.projectType.displayName)
-                                .font(AppTheme.Typography.body(12))
-                                .foregroundStyle(AppTheme.Colors.foregroundSecondary(for: colorScheme))
-                                .lineLimit(1)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, AppTheme.Spacing.md)
-                        .padding(.vertical, AppTheme.Spacing.sm + 2)
-                        .background(SidebarProjectFill(isSelected: project.id == currentProjectID))
+                if store.isLoading && store.projects.isEmpty {
+                    ForEach(0..<3, id: \.self) { _ in
+                        ProjectSidebarSkeleton()
                     }
-                    .buttonStyle(.plain)
+                } else if store.projects.isEmpty {
+                    AppCard(padding: AppTheme.Spacing.lg, cornerRadius: AppTheme.Radius.md) {
+                        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+                            Text("No workspaces yet")
+                                .font(AppTheme.Typography.headline(16, weight: .black))
+                            Text("Register the first repo to populate the control center.")
+                                .font(AppTheme.Typography.body(13, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } else {
+                    ForEach(store.projects) { project in
+                        ProjectSidebarCard(
+                            project: project,
+                            isSelected: project.id == currentProjectID
+                        ) {
+                            Task {
+                                await store.selectProject(id: project.id)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -168,6 +172,29 @@ private struct ControlCenterSidebar: View {
     }
 }
 
+struct ControlCenterEmptyStateView: View {
+    let presentSetup: () -> Void
+
+    var body: some View {
+        ZStack {
+            AppBackground()
+
+            AppCard {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
+                    AppBadge(status: .idle)
+                    Text("No projects registered")
+                        .font(AppTheme.Typography.display(34))
+                    Text("The control center is ready, but it does not have a workspace yet. Run onboarding to register the first repository.")
+                        .font(AppTheme.Typography.body(15, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    AppButton("Start Onboarding", variant: .primary, action: presentSetup)
+                }
+            }
+            .frame(maxWidth: 620)
+        }
+    }
+}
+
 private struct SidebarProjectFill: View {
     let isSelected: Bool
     @Environment(\.colorScheme) private var colorScheme
@@ -186,6 +213,65 @@ private struct SidebarProjectFill: View {
                         lineWidth: isSelected ? 1.4 : 1
                     )
             )
+    }
+}
+
+private struct ProjectSidebarCard: View {
+    let project: RegisteredProject
+    let isSelected: Bool
+    let action: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+                HStack(spacing: AppTheme.Spacing.sm) {
+                    Text(project.projectName.uppercased())
+                        .font(AppTheme.Typography.headline(14, weight: .black))
+                        .lineLimit(1)
+                    Spacer()
+                    AppBadge(status: project.latestSessionStartedAt == nil ? .idle : .healthy)
+                }
+
+                Text(project.projectPath)
+                    .font(AppTheme.Typography.mono(11, weight: .medium))
+                    .foregroundStyle(AppTheme.Colors.foregroundSecondary(for: colorScheme))
+                    .lineLimit(1)
+
+                Text(sessionCopy)
+                    .font(AppTheme.Typography.body(12, weight: .bold))
+                    .foregroundStyle(AppTheme.Colors.foregroundSecondary(for: colorScheme))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, AppTheme.Spacing.md)
+            .padding(.vertical, AppTheme.Spacing.sm + 2)
+            .background(SidebarProjectFill(isSelected: isSelected))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var sessionCopy: String {
+        if let latestSessionStartedAt = project.latestSessionStartedAt {
+            return "Last session \(latestSessionStartedAt.formatted(date: .abbreviated, time: .shortened))"
+        }
+        return "No sessions started yet"
+    }
+}
+
+private struct ProjectSidebarSkeleton: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
+            .fill(AppTheme.Colors.insetSurfaceTint(for: colorScheme))
+            .frame(height: 88)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
+                    .strokeBorder(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
+            )
+            .redacted(reason: .placeholder)
     }
 }
 

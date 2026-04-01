@@ -2,9 +2,13 @@ import AppKit
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var runtimeStore = AppRuntimeStore()
+    @StateObject private var runtimeStore: AppRuntimeStore
     @State private var isPresentingSetup = false
     @State private var hasCompletedInitialLoad = false
+
+    init(runtimeService: AgentRuntimeServing = AppRuntimeServiceFactory.makeDefaultService()) {
+        _runtimeStore = StateObject(wrappedValue: AppRuntimeStore(runtimeService: runtimeService))
+    }
 
     var body: some View {
         currentScene
@@ -36,22 +40,15 @@ struct ContentView: View {
                 projectDetail: projectDetail,
                 presentSetup: presentSetup
             )
+        } else if hasCompletedInitialLoad && !runtimeStore.isLoading && runtimeStore.errorMessage == nil {
+            ControlCenterEmptyStateView(presentSetup: presentSetup)
         } else {
             RuntimeLoadingView()
         }
     }
 
     private var shouldPresentSetup: Bool {
-        if isPresentingSetup {
-            return true
-        }
-
-        return hasCompletedInitialLoad
-            && !runtimeStore.isLoading
-            && runtimeStore.errorMessage == nil
-            && !runtimeStore.hasPersistedProjectSelection
-            && runtimeStore.projects.isEmpty
-            && runtimeStore.selectedProjectDetail == nil
+        isPresentingSetup
     }
 
     private func completeInitialSetup(projectID: String) {

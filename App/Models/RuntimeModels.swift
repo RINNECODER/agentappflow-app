@@ -20,6 +20,7 @@ struct RegisteredProject: Codable, Equatable, Identifiable {
     let registeredAt: Date
     let updatedAt: Date
     let lastBootstrappedAt: Date
+    let latestSessionStartedAt: Date?
     let sessionCount: Int
 
     init(
@@ -37,6 +38,7 @@ struct RegisteredProject: Codable, Equatable, Identifiable {
         registeredAt: Date,
         updatedAt: Date,
         lastBootstrappedAt: Date,
+        latestSessionStartedAt: Date? = nil,
         sessionCount: Int
     ) {
         self.id = id
@@ -53,6 +55,7 @@ struct RegisteredProject: Codable, Equatable, Identifiable {
         self.registeredAt = registeredAt
         self.updatedAt = updatedAt
         self.lastBootstrappedAt = lastBootstrappedAt
+        self.latestSessionStartedAt = latestSessionStartedAt
         self.sessionCount = sessionCount
     }
 }
