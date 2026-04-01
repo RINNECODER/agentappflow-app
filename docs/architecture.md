@@ -95,3 +95,7 @@ In `auto`, the system may update only framework-owned paths inside `.agentappflo
 - no cross-device sync
 - no OS-agnostic app shell yet
 - no attempt to make Rust the primary AI orchestration runtime
+
+## Milestone 1 Note
+
+The first executable slice uses a SwiftUI onboarding shell that invokes a Python bootstrap CLI directly. Rust remains a deferred boundary for guarded execution and policy enforcement after the initial project-bootstrap workflow is working end to end.

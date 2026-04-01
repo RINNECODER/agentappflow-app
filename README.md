@@ -20,6 +20,22 @@ AgentAppFlow App is a Mac-first local control center for project-aware AI develo
 - [Architecture](./docs/architecture.md)
 - [Project Framework Contract](./docs/project-framework.md)
 
+## Automatic Releases
+- Pushing a tag that matches `v*` triggers the GitHub Actions workflow at `.github/workflows/release-dmg.yml`.
+- The workflow builds the `Release` macOS app, packages `AgentAppFlow.app` into `AgentAppFlow-<tag>.dmg`, and publishes it to the matching GitHub Release.
+- Each release also uploads `SHA256SUMS.txt` so downloads can be verified.
+
+Release flow:
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Download flow:
+- Open the latest release on GitHub and download the `.dmg` asset:
+  `https://github.com/RINNECODER/agentappflow-app/releases/latest`
+- Because the current pipeline produces an unsigned build, macOS may show a Gatekeeper warning until code signing and notarization are added.
+
 ## Role In The Ecosystem
 This repository is the primary entrypoint for the AgentAppFlow product. Supporting repos keep shared docs, plugins, skills, and CLI tooling separated for now, but this repo defines the product architecture and the user-facing direction.
 

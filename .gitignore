@@ -7,3 +7,13 @@
 
 # Logs
 *.log
+
+# Python
+__pycache__/
+*.pyc
+
+# Xcode
+DerivedData/
+.build/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
