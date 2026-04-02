@@ -25,6 +25,12 @@ enum BootstrapServiceError: LocalizedError {
 }
 
 final class BootstrapCLIService {
+    private let pythonFrameworkOverride: String?
+
+    init(pythonFrameworkOverride: String? = nil) {
+        self.pythonFrameworkOverride = pythonFrameworkOverride
+    }
+
     func bootstrap(request: BootstrapRequest, force: Bool = false) async throws -> BootstrapCommandResult {
         try await Task.detached(priority: .userInitiated) {
             let encoder = JSONEncoder()
@@ -55,7 +61,7 @@ final class BootstrapCLIService {
             )
             process.standardOutput = stdoutPipe
             process.standardError = stderrPipe
-            process.environment = PythonRuntimeLocator.launchEnvironment()
+            process.environment = PythonRuntimeLocator.launchEnvironment(runtimeOverridePath: self.pythonFrameworkOverride)
 
             try process.run()
             process.waitUntilExit()

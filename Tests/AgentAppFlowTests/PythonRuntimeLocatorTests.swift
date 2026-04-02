@@ -52,6 +52,30 @@ final class PythonRuntimeLocatorTests: XCTestCase {
         XCTAssertNil(PythonRuntimeLocator.launchEnvironment(bundle: bundle)["PYTHONHOME"])
     }
 
+    func testLaunchEnvironmentIncludesRuntimeOverrideWhenProvided() {
+        let environment = PythonRuntimeLocator.launchEnvironment(runtimeOverridePath: "/tmp/Python3.framework")
+
+        XCTAssertEqual(environment["AGENTAPPFLOW_PYTHON_FRAMEWORK_PATH"], "/tmp/Python3.framework")
+    }
+
+    func testLaunchEnvironmentOmitsRuntimeOverrideWhenBlank() {
+        let environment = PythonRuntimeLocator.launchEnvironment(runtimeOverridePath: "   ")
+
+        XCTAssertNil(environment["AGENTAPPFLOW_PYTHON_FRAMEWORK_PATH"])
+    }
+
+    func testInspectUsesRuntimeOverrideFramework() throws {
+        let frameworkPath = try makeFakeFramework(executableName: "python3")
+        let executableURL = frameworkPath.appendingPathComponent("Versions/Current/bin/python3")
+
+        let inspection = PythonRuntimeLocator.inspect(runtimeOverridePath: frameworkPath.path)
+
+        XCTAssertEqual(inspection.interpreterPath, executableURL.path)
+        XCTAssertEqual(inspection.version, nil)
+        XCTAssertEqual(inspection.status, .missing)
+        XCTAssertEqual(inspection.source, .unavailable)
+    }
+
     private func makeFakeBundle(
         includeBootstrapScript: Bool,
         includeEmbeddedPython: Bool,
@@ -72,27 +96,7 @@ final class PythonRuntimeLocatorTests: XCTestCase {
         }
 
         if includeEmbeddedPython {
-            let versionDirectory = frameworksURL
-                .appendingPathComponent("Python3.framework/Versions/Current", isDirectory: true)
-            let interpreterURL: URL
-            if executableName == "python3" {
-                interpreterURL = versionDirectory
-                    .appendingPathComponent("bin", isDirectory: true)
-                    .appendingPathComponent("python3")
-            } else {
-                interpreterURL = versionDirectory
-                    .appendingPathComponent("bin", isDirectory: true)
-                    .appendingPathComponent(executableName)
-            }
-            try FileManager.default.createDirectory(
-                at: interpreterURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            FileManager.default.createFile(atPath: interpreterURL.path, contents: Data())
-            try FileManager.default.setAttributes(
-                [.posixPermissions: 0o755],
-                ofItemAtPath: interpreterURL.path
-            )
+            _ = try makeFakeFramework(at: frameworksURL, executableName: executableName)
         }
 
         addTeardownBlock {
@@ -100,5 +104,45 @@ final class PythonRuntimeLocatorTests: XCTestCase {
         }
 
         return rootURL
+    }
+
+    private func makeFakeFramework(executableName: String) throws -> URL {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathComponent("Python3.framework", isDirectory: true)
+        let frameworkURL = try makeFakeFramework(at: rootURL.deletingLastPathComponent(), executableName: executableName)
+
+        addTeardownBlock {
+            try? FileManager.default.removeItem(at: rootURL.deletingLastPathComponent())
+        }
+
+        return frameworkURL
+    }
+
+    @discardableResult
+    private func makeFakeFramework(at parentURL: URL, executableName: String) throws -> URL {
+        let frameworkURL = parentURL.appendingPathComponent("Python3.framework", isDirectory: true)
+        let versionDirectory = frameworkURL
+            .appendingPathComponent("Versions/Current", isDirectory: true)
+        let interpreterURL: URL
+        if executableName == "python3" {
+            interpreterURL = versionDirectory
+                .appendingPathComponent("bin", isDirectory: true)
+                .appendingPathComponent("python3")
+        } else {
+            interpreterURL = versionDirectory
+                .appendingPathComponent("bin", isDirectory: true)
+                .appendingPathComponent(executableName)
+        }
+        try FileManager.default.createDirectory(
+            at: interpreterURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        FileManager.default.createFile(atPath: interpreterURL.path, contents: Data())
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755],
+            ofItemAtPath: interpreterURL.path
+        )
+        return frameworkURL
     }
 }

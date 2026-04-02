@@ -51,48 +51,55 @@ struct AppBackground: View {
             )
 
             RadialGradient(
-                colors: [.white.opacity(colorScheme == .dark ? 0.12 : 0.40), .clear],
+                colors: [AppTheme.Colors.chromeBlue.opacity(colorScheme == .dark ? 0.22 : 0.10), .clear],
                 center: .topLeading,
-                startRadius: AppTheme.Spacing.xxxl,
+                startRadius: 24,
+                endRadius: 560
+            )
+
+            RadialGradient(
+                colors: [AppTheme.Colors.chromeViolet.opacity(colorScheme == .dark ? 0.12 : 0.06), .clear],
+                center: .trailing,
+                startRadius: 24,
                 endRadius: 520
             )
 
             RadialGradient(
-                colors: [.white.opacity(colorScheme == .dark ? 0.05 : 0.22), .clear],
+                colors: [AppTheme.Colors.chromeTeal.opacity(colorScheme == .dark ? 0.10 : 0.04), .clear],
                 center: .bottomTrailing,
-                startRadius: AppTheme.Spacing.xxxl,
-                endRadius: 520
+                startRadius: 28,
+                endRadius: 540
             )
 
             Circle()
-                .fill(.white.opacity(colorScheme == .dark ? 0.06 : 0.20))
-                .frame(width: 300, height: 300)
+                .fill(AppTheme.Colors.chromeBlue.opacity(colorScheme == .dark ? 0.07 : 0.06))
+                .frame(width: 240, height: 240)
                 .blur(radius: 120)
-                .offset(x: -260, y: -220)
+                .offset(x: -300, y: -260)
 
-            Circle()
-                .fill(.black.opacity(colorScheme == .dark ? 0.24 : 0.10))
-                .frame(width: 380, height: 380)
-                .blur(radius: 150)
-                .offset(x: 300, y: 220)
+            Ellipse()
+                .fill(AppTheme.Colors.chromeTeal.opacity(colorScheme == .dark ? 0.05 : 0.03))
+                .frame(width: 360, height: 240)
+                .blur(radius: 120)
+                .offset(x: 310, y: 260)
 
             Rectangle()
-                .fill(.ultraThinMaterial)
+                .fill(.ultraThinMaterial.opacity(colorScheme == .dark ? 0.90 : 0.72))
 
             LinearGradient(
                 colors: [
-                    .black.opacity(colorScheme == .dark ? 0.30 : 0.10),
+                    .black.opacity(colorScheme == .dark ? 0.14 : 0.04),
                     .clear,
-                    .black.opacity(colorScheme == .dark ? 0.34 : 0.12),
+                    .black.opacity(colorScheme == .dark ? 0.22 : 0.08),
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
 
             RadialGradient(
-                colors: [.clear, .black.opacity(colorScheme == .dark ? 0.34 : 0.14)],
+                colors: [.clear, .black.opacity(colorScheme == .dark ? 0.24 : 0.08)],
                 center: .center,
-                startRadius: 220,
+                startRadius: 260,
                 endRadius: 980
             )
         }
@@ -117,12 +124,24 @@ struct AppGlassSurface: View {
                         .white.opacity(colorScheme == .dark ? tintOpacityDark : tintOpacityLight)
                     )
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(AppTheme.Colors.border(for: colorScheme), lineWidth: 1)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(AppTheme.Colors.chromeHighlight(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.08))
+                    .mask(
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    )
+            )
     }
 }
 
 struct AppCard<Content: View>: View {
     var padding: CGFloat = AppTheme.Spacing.xl
     var cornerRadius: CGFloat = AppTheme.Radius.lg
+    var interactive = false
     @ViewBuilder let content: Content
 
     @Environment(\.colorScheme) private var colorScheme
@@ -133,12 +152,25 @@ struct AppCard<Content: View>: View {
         }
         .padding(padding)
         .background(
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(.regularMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(AppTheme.Colors.surfaceTint(for: colorScheme))
-                )
+            AppGlassSurface(
+                cornerRadius: cornerRadius,
+                material: .regularMaterial,
+                tintOpacityDark: 0.025,
+                tintOpacityLight: 0.34
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(colorScheme == .dark ? 0.02 : 0.32),
+                                .clear,
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .center
+                        )
+                    )
+            )
         )
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -150,6 +182,13 @@ struct AppCard<Content: View>: View {
             x: 0,
             y: AppTheme.Shadow.y
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(AppTheme.Colors.chromeGlow(for: colorScheme), lineWidth: interactive ? 1 : 0)
+                .blur(radius: interactive ? 8 : 0)
+                .opacity(interactive ? 0.6 : 0)
+        )
+        .modifier(HoverLiftModifier(enabled: interactive))
     }
 }
 
@@ -169,8 +208,8 @@ struct AppInsetSurface: View {
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(
-                        emphasized ? AppTheme.Colors.primaryFill(for: colorScheme) : AppTheme.Colors.border(for: colorScheme),
-                        lineWidth: emphasized ? 1.5 : 1
+                        emphasized ? AppTheme.Colors.primaryFill(for: colorScheme).opacity(0.7) : AppTheme.Colors.border(for: colorScheme),
+                        lineWidth: emphasized ? 1.1 : 1
                     )
             )
     }
@@ -253,41 +292,63 @@ private struct OptionalAccessibilityLabel: ViewModifier {
 struct AppButtonStyle: ButtonStyle {
     let variant: AppButtonVariant
 
+    func makeBody(configuration: Configuration) -> some View {
+        AppButtonChrome(configuration: configuration, variant: variant)
+    }
+}
+
+private struct AppButtonChrome: View {
+    let configuration: ButtonStyle.Configuration
+    let variant: AppButtonVariant
+
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovered = false
 
-    func makeBody(configuration: Configuration) -> some View {
+    var body: some View {
         configuration.label
-            .font(AppTheme.Typography.headline(14, weight: .black))
+            .font(AppTheme.Typography.headline(14, weight: .semibold))
             .foregroundStyle(foregroundColor)
             .frame(minWidth: AppTheme.Layout.minimumTapTarget)
             .frame(height: AppTheme.Layout.buttonHeight)
             .padding(.horizontal, AppTheme.Spacing.lg)
-            .background(
-                RoundedRectangle(cornerRadius: AppTheme.Radius.lg - 2, style: .continuous)
-                    .fill(backgroundFill(configuration: configuration))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.Radius.lg - 2, style: .continuous)
-                            .fill(backgroundTint)
-                    )
+            .background(background)
+            .overlay(border)
+            .shadow(
+                color: variant == .primary && isEnabled
+                    ? AppTheme.Colors.chromeGlow(for: colorScheme).opacity(isHovered ? 0.30 : 0.14)
+                    : .clear,
+                radius: isHovered ? 14 : 6,
+                x: 0,
+                y: isHovered ? 8 : 4
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.Radius.lg - 2, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: 1)
-            )
-            .opacity(opacity(configuration: configuration))
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-            .animation(.easeOut(duration: 0.12), value: isEnabled)
+            .scaleEffect(configuration.isPressed ? 0.99 : (isHovered && isEnabled ? 1.005 : 1))
+            .offset(y: configuration.isPressed ? 1 : 0)
+            .opacity(opacity)
+            .animation(AppTheme.Motion.spring, value: configuration.isPressed)
+            .animation(AppTheme.Motion.spring, value: isHovered)
+            .animation(AppTheme.Motion.smooth, value: isEnabled)
+            .onHover { hovering in
+                isHovered = hovering
+            }
     }
 
-    private func backgroundFill(configuration: Configuration) -> AnyShapeStyle {
-        let pressedOpacity = configuration.isPressed ? 0.82 : 1.0
+    @ViewBuilder
+    private var background: some View {
+        RoundedRectangle(cornerRadius: AppTheme.Radius.lg - 2, style: .continuous)
+            .fill(backgroundFill)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.lg - 2, style: .continuous)
+                    .fill(backgroundTint)
+            )
+    }
 
+    private var backgroundFill: AnyShapeStyle {
         switch variant {
         case .primary:
             return AnyShapeStyle(
                 AppTheme.Colors.primaryFill(for: colorScheme)
-                    .opacity(isEnabled ? pressedOpacity : 0.28)
+                    .opacity(isEnabled ? 1 : 0.28)
             )
         case .secondary:
             if isEnabled {
@@ -295,7 +356,7 @@ struct AppButtonStyle: ButtonStyle {
             } else {
                 return AnyShapeStyle(
                     AppTheme.Colors.secondaryFill(for: colorScheme)
-                        .opacity(colorScheme == .dark ? 0.55 : 0.85)
+                        .opacity(colorScheme == .dark ? 0.50 : 0.80)
                 )
             }
         case .ghost:
@@ -310,21 +371,36 @@ struct AppButtonStyle: ButtonStyle {
         case .destructive:
             return AnyShapeStyle(
                 AppTheme.Colors.destructive
-                    .opacity(isEnabled ? pressedOpacity : 0.30)
+                    .opacity(isEnabled ? 1 : 0.30)
             )
         }
     }
 
-    private var backgroundTint: Color {
+    private var backgroundTint: AnyShapeStyle {
         guard isEnabled else {
-            return colorScheme == .dark ? .white.opacity(0.03) : .white.opacity(0.18)
+            return AnyShapeStyle(colorScheme == .dark ? .white.opacity(0.03) : .white.opacity(0.18))
         }
 
         switch variant {
-        case .primary, .destructive, .ghost:
-            return Color.clear
+        case .primary:
+            return AnyShapeStyle(
+                AppTheme.Colors.chromeHighlight(for: colorScheme)
+                    .opacity(colorScheme == .dark ? 0.10 : 0.06)
+            )
+        case .destructive:
+            return AnyShapeStyle(Color.clear)
+        case .ghost:
+            return AnyShapeStyle(
+                isHovered
+                    ? AppTheme.Colors.secondaryFill(for: colorScheme).opacity(colorScheme == .dark ? 0.6 : 0.75)
+                    : .clear
+            )
         case .secondary:
-            return colorScheme == .dark ? Color.white.opacity(0.05) : Color.white.opacity(0.24)
+            return AnyShapeStyle(
+                colorScheme == .dark
+                    ? Color.white.opacity(isHovered ? 0.06 : 0.03)
+                    : Color.white.opacity(isHovered ? 0.28 : 0.16)
+            )
         }
     }
 
@@ -339,25 +415,38 @@ struct AppButtonStyle: ButtonStyle {
         }
     }
 
+    @ViewBuilder
+    private var border: some View {
+        RoundedRectangle(cornerRadius: AppTheme.Radius.lg - 2, style: .continuous)
+            .strokeBorder(borderColor, lineWidth: borderWidth)
+            .opacity(variant == .primary ? 0.9 : 1)
+    }
+
     private var borderColor: Color {
         switch variant {
         case .primary:
             AppTheme.Colors.primaryFill(for: colorScheme).opacity(isEnabled ? 1 : 0.24)
         case .secondary:
-            AppTheme.Colors.border(for: colorScheme).opacity(isEnabled ? 1 : 0.55)
+            (isHovered ? AppTheme.Colors.borderStrong(for: colorScheme) : AppTheme.Colors.border(for: colorScheme))
+                .opacity(isEnabled ? 1 : 0.55)
         case .ghost:
-            AppTheme.Colors.borderStrong(for: colorScheme).opacity(isEnabled ? 1 : 0.42)
+            (isHovered ? AppTheme.Colors.foregroundSecondary(for: colorScheme) : AppTheme.Colors.borderStrong(for: colorScheme))
+                .opacity(isEnabled ? 1 : 0.42)
         case .destructive:
             AppTheme.Colors.destructive.opacity(isEnabled ? 1 : 0.34)
         }
     }
 
-    private func opacity(configuration: Configuration) -> Double {
+    private var borderWidth: CGFloat {
+        variant == .ghost && !isHovered ? 0.8 : 1
+    }
+
+    private var opacity: Double {
         switch (isEnabled, configuration.isPressed) {
         case (false, _):
-            0.78
+            0.76
         case (true, true):
-            0.78
+            0.86
         case (true, false):
             1
         }
@@ -622,6 +711,23 @@ struct AppIcon: View {
             .font(.system(size: size, weight: weight))
             .foregroundStyle(color ?? AppTheme.Colors.foregroundPrimary(for: colorScheme))
             .frame(minWidth: AppTheme.Layout.minimumTapTarget, minHeight: AppTheme.Layout.minimumTapTarget)
+    }
+}
+
+private struct HoverLiftModifier: ViewModifier {
+    let enabled: Bool
+
+    @State private var isHovered = false
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(enabled && isHovered ? 1.012 : 1)
+            .offset(y: enabled && isHovered ? -2 : 0)
+            .animation(AppTheme.Motion.emphasis, value: isHovered)
+            .onHover { hovering in
+                guard enabled else { return }
+                isHovered = hovering
+            }
     }
 }
 

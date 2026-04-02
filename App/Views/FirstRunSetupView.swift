@@ -145,6 +145,8 @@ enum SetupBootstrapError: Equatable, Identifiable {
 
 struct FirstRunSetupView: View {
     let runtimeService: AgentRuntimeServing
+    let defaultApprovalMode: ApprovalMode
+    let pythonFrameworkOverride: String?
     let completeInitialSetup: (String) -> Void
 
     @State private var currentStage: SetupStage
@@ -157,8 +159,10 @@ struct FirstRunSetupView: View {
 
     init(
         runtimeService: AgentRuntimeServing,
+        defaultApprovalMode: ApprovalMode = .propose,
+        pythonFrameworkOverride: String? = nil,
         initialStage: SetupStage = .intro,
-        initialFormState: OnboardingFormState = OnboardingFormState(),
+        initialFormState: OnboardingFormState? = nil,
         initialCommandResult: BootstrapCommandResult? = nil,
         initialRegisteredProject: RegisteredProject? = nil,
         initialBootstrapError: SetupBootstrapError? = nil,
@@ -166,9 +170,11 @@ struct FirstRunSetupView: View {
         completeInitialSetup: @escaping (String) -> Void
     ) {
         self.runtimeService = runtimeService
+        self.defaultApprovalMode = defaultApprovalMode
+        self.pythonFrameworkOverride = pythonFrameworkOverride
         self.completeInitialSetup = completeInitialSetup
         _currentStage = State(initialValue: initialStage)
-        _formState = State(initialValue: initialFormState)
+        _formState = State(initialValue: initialFormState ?? OnboardingFormState(approvalMode: defaultApprovalMode))
         _commandResult = State(initialValue: initialCommandResult)
         _registeredProject = State(initialValue: initialRegisteredProject)
         _bootstrapError = State(initialValue: initialBootstrapError)
@@ -224,6 +230,16 @@ struct FirstRunSetupView: View {
             .padding(.horizontal, AppTheme.Spacing.xxl)
             .padding(.top, AppTheme.Spacing.xxxl + AppTheme.Spacing.md)
             .padding(.bottom, AppTheme.Spacing.section)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.shell, style: .continuous)
+                    .fill(.ultraThinMaterial.opacity(0.22))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.Radius.shell, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+                    .padding(.horizontal, AppTheme.Spacing.xl)
+                    .padding(.vertical, AppTheme.Spacing.lg)
+            )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .frame(
@@ -240,7 +256,7 @@ struct FirstRunSetupView: View {
         .task {
             guard pythonInspection.status == .checking else { return }
             let inspection = await Task.detached(priority: .userInitiated) {
-                PythonRuntimeLocator.inspect()
+                PythonRuntimeLocator.inspect(runtimeOverridePath: pythonFrameworkOverride)
             }.value
             pythonInspection = inspection
         }
@@ -421,16 +437,19 @@ struct SetupStepHeader: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.compact) {
-            Text("Step \(stepNumber) / \(totalSteps)")
-                .font(Font.brutalMeta())
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+            HStack(spacing: AppTheme.Spacing.sm) {
+                AppBadge(status: .idle)
+                Text("Step \(stepNumber) / \(totalSteps)")
+                    .font(AppTheme.Typography.mono(11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+            }
 
             Text(title)
-                .font(Font.brutalHero(30))
+                .font(AppTheme.Typography.display(30))
 
             Text(prompt)
-                .font(Font.brutalBody(15))
+                .font(AppTheme.Typography.body(14, weight: .semibold))
                 .foregroundStyle(.secondary)
 
             SetupStepMeter(stepNumber: stepNumber, totalSteps: totalSteps)
@@ -446,8 +465,12 @@ struct SetupStepMeter: View {
         HStack(spacing: AppTheme.Spacing.xs) {
             ForEach(0..<totalSteps, id: \.self) { index in
                 Capsule()
-                    .fill(index < stepNumber ? Color.primary : Color.primary.opacity(0.14))
-                    .frame(height: AppTheme.Spacing.xxs + 1)
+                    .fill(index < stepNumber ? AnyShapeStyle(Color.primary) : AnyShapeStyle(Color.primary.opacity(0.12)))
+                    .overlay(
+                        Capsule()
+                            .fill(index + 1 == stepNumber ? AnyShapeStyle(AppTheme.Colors.chromeHighlight(for: .dark)) : AnyShapeStyle(Color.clear))
+                    )
+                    .frame(height: AppTheme.Spacing.xxs + 2)
             }
         }
         .accessibilityHidden(true)
@@ -458,11 +481,11 @@ struct IntroStageView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.xl) {
             Text("Wire one repo.\nGive it memory.\nKeep it local.")
-                .font(Font.brutalHero(42))
+                .font(AppTheme.Typography.display(38))
                 .lineSpacing(-2)
 
             Text("AgentAppFlow sets the first contract, adapters, and working memory layer before any coding agent touches the repo.")
-                .font(Font.brutalBody(16, weight: .semibold))
+                .font(AppTheme.Typography.body(14, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -532,9 +555,9 @@ struct SetupRuntimeHero: View {
 
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
                     Text(inspection.title)
-                        .font(Font.brutalHero(34))
+                        .font(AppTheme.Typography.display(30))
                     Text(inspection.detail)
-                        .font(Font.brutalBody(15, weight: .semibold))
+                        .font(AppTheme.Typography.body(14, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -544,9 +567,13 @@ struct SetupRuntimeHero: View {
                 SetupFactRow(label: "STATE", value: inspection.statusCopy)
                 SetupFactRow(label: "PATH", value: inspection.interpreterPath ?? "Unavailable")
             }
+
+            if let overridePath = inspection.overridePath {
+                SetupFactRow(label: "OVERRIDE", value: overridePath)
+            }
         }
         .padding(AppTheme.Spacing.relaxed)
-        .background(BrutalInset(selected: inspection.canProceed))
+        .background(AppInsetSurface(emphasized: inspection.canProceed, cornerRadius: AppTheme.Radius.xl))
     }
 
     private var iconName: String {
@@ -582,23 +609,23 @@ struct SetupSpotlightCard: View {
     let copy: String
 
     var bodyView: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.compact) {
-            Text(eyebrow)
-                .font(Font.brutalMeta())
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+        AppCard(padding: AppTheme.Spacing.lg, cornerRadius: AppTheme.Radius.lg, interactive: true) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.compact) {
+                Text(eyebrow)
+                    .font(AppTheme.Typography.mono(11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
 
-            Text(title)
-                .font(Font.brutalTitle(20, weight: .black))
+                Text(title)
+                    .font(AppTheme.Typography.headline(18, weight: .semibold))
 
-            Text(copy)
-                .font(Font.brutalBody(14, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(copy)
+                    .font(AppTheme.Typography.body(13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(AppTheme.Spacing.lg)
-        .background(BrutalInset(selected: true))
     }
 
     var body: some View { bodyView }
@@ -609,17 +636,17 @@ struct SetupFactRow: View {
     let value: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: AppTheme.Spacing.md) {
-            Text(label)
-                .font(Font.brutalMeta())
-                .frame(width: 74, alignment: .leading)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(Font.brutalBody(15, weight: .semibold))
-                .frame(maxWidth: .infinity, alignment: .leading)
+        AppCard(padding: AppTheme.Spacing.regular, cornerRadius: AppTheme.Radius.md) {
+            HStack(alignment: .top, spacing: AppTheme.Spacing.md) {
+                Text(label)
+                    .font(AppTheme.Typography.mono(10, weight: .semibold))
+                    .frame(width: 74, alignment: .leading)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(AppTheme.Typography.body(14, weight: .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
-        .padding(AppTheme.Spacing.regular)
-        .background(BrutalInset())
     }
 }
 
@@ -631,7 +658,7 @@ struct RepositoryStageView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
             Text("Select a git repository folder.")
-                .font(Font.brutalTitle(21, weight: .black))
+                .font(AppTheme.Typography.headline(21, weight: .bold))
 
             SetupRepoTargetCard(projectPath: projectPath)
 
@@ -655,23 +682,23 @@ struct SetupRepoTargetCard: View {
     let projectPath: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
-            Text("Target Repo")
-                .font(Font.brutalMeta())
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+        AppCard(padding: AppTheme.Spacing.relaxed, cornerRadius: AppTheme.Radius.xl, interactive: !projectPath.isEmpty) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
+                Text("Target Repo")
+                    .font(AppTheme.Typography.mono(11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
 
-            Text(displayPath)
-                .font(Font.brutalTitle(24, weight: .black))
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
+                Text(displayPath)
+                    .font(AppTheme.Typography.headline(24, weight: .bold))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
 
-            Text(description)
-                .font(Font.brutalBody(14, weight: .semibold))
-                .foregroundStyle(.secondary)
+                Text(description)
+                    .font(AppTheme.Typography.body(14, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(AppTheme.Spacing.relaxed)
-        .background(BrutalInset(selected: !projectPath.isEmpty))
     }
 
     private var displayPath: String {
@@ -694,7 +721,7 @@ struct ProjectNameStageView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
             Text("How should the workspace be named?")
-                .font(Font.brutalTitle(21, weight: .black))
+                .font(AppTheme.Typography.headline(21, weight: .bold))
 
             AppTextField(
                 title: nil,
@@ -720,48 +747,48 @@ struct SetupIdentityCard: View {
     @Binding var projectDescription: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.Spacing.relaxed) {
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.xxs * 2) {
-                Text("AI Context")
-                    .font(Font.brutalMeta())
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
+        AppCard(padding: AppTheme.Spacing.xl, cornerRadius: AppTheme.Radius.xl, interactive: !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.relaxed) {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.xxs * 2) {
+                    Text("AI Context")
+                        .font(AppTheme.Typography.mono(10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
 
-                Text(displayName)
-                    .font(Font.brutalHero(32))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.75)
+                    Text(displayName)
+                        .font(AppTheme.Typography.display(30))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.75)
 
-                Text("Give the framework a compact brief so the generated repo memory starts with real project context.")
-                    .font(Font.brutalBody(14, weight: .semibold))
-                    .foregroundStyle(.secondary)
-            }
+                    Text("Give the framework a compact brief so the generated repo memory starts with real project context.")
+                        .font(AppTheme.Typography.body(13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
 
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
-                Text("Prompt (optional)")
-                    .font(Font.brutalMeta())
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+                    Text("Prompt (optional)")
+                        .font(AppTheme.Typography.mono(10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
 
-                AppTextArea(
-                    title: nil,
-                    prompt: "Example: Building an iOS legal assistant that analyzes contracts locally, keeps project memory inside the repo, and optimizes codex and claude workflows around legal review.",
-                    text: $projectDescription,
-                    minHeight: 112,
-                    maxHeight: editorHeight,
-                    accessibilityLabel: SetupAccessibilityLabel.projectBrief
+                    AppTextArea(
+                        title: nil,
+                        prompt: "Example: Building an iOS legal assistant that analyzes contracts locally, keeps project memory inside the repo, and optimizes codex and claude workflows around legal review.",
+                        text: $projectDescription,
+                        minHeight: 112,
+                        maxHeight: editorHeight,
+                        accessibilityLabel: SetupAccessibilityLabel.projectBrief
+                    )
+                }
+
+                SetupInlineGuidanceCard(
+                    label: "USE",
+                    value: "Include the product goal, target user, repo focus, constraints, and what makes this project specific."
                 )
             }
-
-            SetupInlineGuidanceCard(
-                label: "USE",
-                value: "Include the product goal, target user, repo focus, constraints, and what makes this project specific."
-            )
+            .frame(maxWidth: .infinity, maxHeight: cardHeight, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, maxHeight: cardHeight, alignment: .topLeading)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(AppTheme.Spacing.xl)
-        .background(BrutalInset(selected: !projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
     }
 
     private var displayName: String {
@@ -785,26 +812,18 @@ struct SetupInlineGuidanceCard: View {
     let value: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: AppTheme.Spacing.md) {
-            Text(label)
-                .font(Font.brutalMeta())
-                .foregroundStyle(.secondary)
-                .frame(width: 74, alignment: .leading)
+        AppCard(padding: AppTheme.Spacing.regular, cornerRadius: AppTheme.Radius.md) {
+            HStack(alignment: .top, spacing: AppTheme.Spacing.md) {
+                Text(label)
+                    .font(AppTheme.Typography.mono(11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 74, alignment: .leading)
 
-            Text(value)
-                .font(Font.brutalBody(15, weight: .semibold))
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text(value)
+                    .font(AppTheme.Typography.body(15, weight: .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
-        .padding(.horizontal, AppTheme.Spacing.regular)
-        .padding(.vertical, AppTheme.Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
-                .fill(Color.primary.opacity(0.04))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.Radius.md, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                )
-        )
     }
 }
 
@@ -974,18 +993,18 @@ struct SetupLaunchHero: View {
 
             VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
                 Text("Ready to initialize")
-                    .font(Font.brutalMeta())
+                    .font(AppTheme.Typography.mono(10, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
                 Text(formState.projectName)
-                    .font(Font.brutalHero(34))
+                    .font(AppTheme.Typography.display(30))
                 Text("The stub bootstrap will register the repo, adapter files, and starter memory structure without calling the live daemon.")
-                    .font(Font.brutalBody(14, weight: .semibold))
+                    .font(AppTheme.Typography.body(13, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
         }
         .padding(AppTheme.Spacing.relaxed)
-        .background(BrutalInset(selected: true))
+        .background(AppInsetSurface(emphasized: true, cornerRadius: AppTheme.Radius.xl))
     }
 }
 
@@ -996,21 +1015,21 @@ struct SetupPreviewPanel: View {
         AppCard {
             VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
                 Text("Planned Writes")
-                    .font(AppTheme.Typography.mono(12, weight: .black))
+                    .font(AppTheme.Typography.mono(11, weight: .semibold))
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary)
 
                 ForEach(previewPlan.treeItems, id: \.self) { item in
                     Text(item)
-                        .font(AppTheme.Typography.mono(13, weight: .medium))
+                        .font(AppTheme.Typography.mono(12, weight: .medium))
                 }
 
                 AppDivider()
 
                 Text(previewPlan.approvalSummary)
-                    .font(AppTheme.Typography.body(13, weight: .bold))
+                    .font(AppTheme.Typography.body(12, weight: .semibold))
                 Text(previewPlan.improvementSummary)
-                    .font(AppTheme.Typography.body(13, weight: .bold))
+                    .font(AppTheme.Typography.body(12, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
         }
@@ -1025,9 +1044,9 @@ struct SetupBootstrapErrorCard: View {
         AppCard {
             VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
                 Text(title)
-                    .font(AppTheme.Typography.headline(18, weight: .black))
+                    .font(AppTheme.Typography.headline(17, weight: .semibold))
                 Text(detail)
-                    .font(AppTheme.Typography.body(14, weight: .semibold))
+                    .font(AppTheme.Typography.body(13, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
         }
@@ -1044,11 +1063,11 @@ struct CompletionStageView: View {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
                     AppBadge(status: .healthy)
                     Text("Workspace ready")
-                        .font(AppTheme.Typography.display(34))
+                        .font(AppTheme.Typography.display(30))
                     Text(project?.projectName ?? "Registered workspace")
-                        .font(AppTheme.Typography.headline(22, weight: .black))
+                        .font(AppTheme.Typography.headline(20, weight: .semibold))
                     Text(project?.projectPath ?? "Unknown path")
-                        .font(AppTheme.Typography.mono(13, weight: .medium))
+                        .font(AppTheme.Typography.mono(12, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -1057,13 +1076,13 @@ struct CompletionStageView: View {
                 AppCard {
                     VStack(alignment: .leading, spacing: AppTheme.Spacing.md) {
                         Text("Created")
-                            .font(AppTheme.Typography.mono(12, weight: .black))
+                            .font(AppTheme.Typography.mono(11, weight: .semibold))
                             .textCase(.uppercase)
                             .foregroundStyle(.secondary)
 
                         ForEach(commandResult.created, id: \.self) { item in
                             Text(item)
-                                .font(AppTheme.Typography.mono(13, weight: .medium))
+                                .font(AppTheme.Typography.mono(12, weight: .medium))
                         }
                     }
                 }
@@ -1127,6 +1146,7 @@ struct SetupFooter: View {
                 )
             }
         }
+        .padding(.top, AppTheme.Spacing.md)
     }
 }
 
@@ -1156,6 +1176,7 @@ struct SetupChoiceCard: View {
     let isSelected: Bool
     var selectionStyle: SetupChoiceStyle = .single
     let action: () -> Void
+    @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
@@ -1180,18 +1201,28 @@ struct SetupChoiceCard: View {
 
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
                     Text(title)
-                        .font(Font.brutalTitle(18, weight: .black))
+                        .font(AppTheme.Typography.headline(18, weight: .bold))
                     Text(subtitle)
-                        .font(Font.brutalBody(13, weight: .semibold))
+                        .font(AppTheme.Typography.body(13, weight: .semibold))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 154, alignment: .topLeading)
             .padding(AppTheme.Spacing.lg)
-            .background(BrutalInset(selected: isSelected))
+            .background(AppInsetSurface(emphasized: isSelected || isHovered, cornerRadius: AppTheme.Radius.lg))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.lg, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? Color.primary.opacity(0.8) : (isHovered ? Color.primary.opacity(0.18) : Color.clear),
+                        lineWidth: isSelected ? 1.4 : 1
+                    )
+            )
         }
         .buttonStyle(.plain)
+        .scaleEffect(isHovered ? 1.01 : 1)
+        .animation(AppTheme.Motion.emphasis, value: isHovered)
+        .onHover { isHovered = $0 }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
         .accessibilityValue(isSelected ? "Selected" : "Not selected")

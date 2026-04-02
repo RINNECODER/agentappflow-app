@@ -424,6 +424,9 @@ class RuntimeWorkflowTests(unittest.TestCase):
             )
             self.assertEqual(health["result"]["status"], "ok")
             self.assertEqual(health["result"]["project_count"], 1)
+            self.assertEqual(len(health["result"]["subsystems"]), 3)
+            subsystem_names = {item["name"] for item in health["result"]["subsystems"]}
+            self.assertEqual(subsystem_names, {"process", "session_pipeline", "improvement_queue"})
 
             responses: list[dict[str, object]] = []
             errors: list[BaseException] = []

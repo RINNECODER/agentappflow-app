@@ -104,6 +104,13 @@ final class OnboardingFormStateTests: XCTestCase {
         XCTAssertEqual(snapshot.projectNameState, .valid("27 characters remaining"))
     }
 
+    func testFormStateInitializerAcceptsCustomApprovalDefault() {
+        let formState = OnboardingFormState(approvalMode: .observe)
+
+        XCTAssertEqual(formState.approvalMode, .observe)
+        XCTAssertEqual(formState.improvementMode, .propose)
+    }
+
     private func makeGitRepository(named name: String) throws -> URL {
         let directory = try makeDirectory(named: name)
         try FileManager.default.createDirectory(

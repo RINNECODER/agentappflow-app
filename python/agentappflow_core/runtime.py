@@ -74,14 +74,36 @@ class AgentAppFlowRuntime:
 
     def rpc_health_check(self, params: dict[str, Any]) -> dict[str, Any]:
         _ = params
+        session_pipeline_ok = self.session_registry.base_dir.exists() and os.access(self.session_registry.base_dir, os.W_OK)
+        proposals_path = self.project_registry.base_dir / "projects.json"
+        improvement_queue_ok = proposals_path.parent.exists() and os.access(proposals_path.parent, os.R_OK)
+        subsystems = [
+            {
+                "name": "process",
+                "status": "ok",
+                "detail": "Runtime process is alive and responding.",
+            },
+            {
+                "name": "session_pipeline",
+                "status": "ok" if session_pipeline_ok else "degraded",
+                "detail": "Session storage is writable." if session_pipeline_ok else "Session storage is unavailable or not writable.",
+            },
+            {
+                "name": "improvement_queue",
+                "status": "ok" if improvement_queue_ok else "degraded",
+                "detail": "Proposal and retro state is readable." if improvement_queue_ok else "Proposal or retro storage is unavailable.",
+            },
+        ]
+        overall_status = "ok" if all(item["status"] == "ok" for item in subsystems) else "degraded"
         return {
-            "status": "ok",
+            "status": overall_status,
             "version": RUNTIME_VERSION,
             "python_version": platform.python_version(),
             "uptime_seconds": self.uptime_seconds(),
             "registry_path": str(self.project_registry.registry_path),
             "project_count": len(self.project_registry.list_projects()),
             "socket_path": self.socket_path,
+            "subsystems": subsystems,
         }
 
     def rpc_bootstrap_project(self, params: dict[str, Any]) -> dict[str, Any]:

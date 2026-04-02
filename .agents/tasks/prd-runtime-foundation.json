@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "project": "AgentAppFlow Runtime Foundation",
+  "overview": "Stabilize the runtime-backed onboarding and control-center foundation in the primary macOS app so the product can register projects, start sessions, and rely on the embedded Python runtime instead of one-off local snapshots.",
+  "goals": [
+    "Finish the runtime-backed onboarding and project registration flow in the Swift app",
+    "Harden the embedded Python launcher and runtime service contract",
+    "Keep tests, docs, and Xcode project generation aligned with the runtime architecture"
+  ],
+  "nonGoals": [
+    "Do not introduce any hosted backend or cloud dependency",
+    "Do not start the Rust executor implementation in this loop",
+    "Do not redesign unrelated UI surfaces outside onboarding and the control center"
+  ],
+  "successMetrics": [
+    "A bootstrapped repo can be registered and shown in the control center through runtime-backed data",
+    "Swift and Python test suites pass for stories that change those surfaces",
+    "Architecture docs match the local runtime implementation after each completed story"
+  ],
+  "openQuestions": [
+    "Should session history UI ship in the same runtime foundation slice or remain deferred after registration and start-session flows are stable?"
+  ],
+  "stack": {
+    "framework": "SwiftUI macOS app with a bundled Python runtime",
+    "hosting": "Local-only desktop runtime",
+    "database": "Local file-backed registry under Application Support",
+    "auth": "No hosted auth in this phase"
+  },
+  "routes": [
+    {
+      "path": "FirstRunSetupView",
+      "name": "First-run onboarding",
+      "purpose": "Bootstrap and register a repo, then transition into the runtime-backed control center"
+    },
+    {
+      "path": "ControlCenterView",
+      "name": "Control center",
+      "purpose": "Show the selected registered project, runtime status, and session entry points"
+    }
+  ],
+  "uiNotes": [
+    "The onboarding flow must stay explicit about local-only runtime setup and runtime-backed registration.",
+    "The control center should reflect runtime state rather than a stale one-off snapshot."
+  ],
+  "dataModel": [
+    {
+      "entity": "RegisteredProject",
+      "fields": [
+        "id",
+        "projectName",
+        "projectDescription",
+        "projectPath",
+        "projectType",
+        "platforms",
+        "agentTools",
+        "approvalMode",
+        "improvementMode",
+        "createdItems",
+        "skippedItems",
+        "registeredAt",
+        "updatedAt",
+        "lastBootstrappedAt",
+        "sessionCount"
+      ]
+    },
+    {
+      "entity": "SessionRecord",
+      "fields": [
+        "id",
+        "projectID",
+        "title",
+        "status",
+        "createdAt",
+        "startedAt"
+      ]
+    }
+  ],
+  "importFormat": {
+    "description": "Not applicable. This loop works against the existing local macOS app and bundled Python runtime.",
+    "example": {}
+  },
+  "rules": [
+    "The product remains local-first and must not depend on a backend.",
+    "Swift is the control plane, Python owns runtime orchestration, and Rust stays deferred as the future trust boundary.",
+    "If project.yml changes, regenerate AgentAppFlow.xcodeproj/project.pbxproj with xcodegen instead of hand-editing it.",
+    "Each story must preserve focused source control by staging only story-related files and Ralph state files."
+  ],
+  "qualityGates": [
+    "Inspect git status before editing and do not mix unrelated dirty files into a story commit",
+    "python3 -m pytest python/tests when Python runtime files change",
+    "xcodegen generate when Swift sources, project.yml, or the Xcode project need sync",
+    "xcodebuild -project AgentAppFlow.xcodeproj -scheme AgentAppFlow -destination 'platform=macOS' test when Swift or Xcode project files change",
+    "Update docs when runtime architecture or developer workflow changes"
+  ],
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "Complete runtime-backed onboarding handoff",
+      "status": "open",
+      "dependsOn": [],
+      "description": "As a first-time AgentAppFlow user, I want onboarding to bootstrap and register a repo into the local runtime so the app transitions directly into the runtime-backed control center.",
+      "acceptanceCriteria": [
+        "FirstRunSetupView completes bootstrap plus registration and hands a project identifier or equivalent runtime-backed selection into the main app flow.",
+        "Example: a successful bootstrap/register flow selects the newly registered project and opens the control center with runtime data.",
+        "Negative case: if bootstrap or registration fails, the user remains in onboarding and sees an actionable error without a half-completed transition.",
+        "Relevant Swift tests cover the onboarding-to-runtime handoff behavior."
+      ],
+      "startedAt": null,
+      "completedAt": null,
+      "updatedAt": "2026-04-01T05:38:25.662205+00:00"
+    },
+    {
+      "id": "US-002",
+      "title": "Harden embedded Python runtime execution",
+      "status": "open",
+      "dependsOn": [
+        "US-001"
+      ],
+      "description": "As a developer, I want the macOS app to use the bundled Python runtime reliably so runtime commands behave consistently on machines without a user-managed python3 setup.",
+      "acceptanceCriteria": [
+        "BootstrapCLIService and runtime-facing services launch Python through the embedded runtime locator and pass the environment required by the bundled framework.",
+        "Example: runtime list/register/start-session flows work when launched through the bundled interpreter path.",
+        "Negative case: missing interpreter or runtime launch failure surfaces a structured error rather than failing silently or hanging the UI.",
+        "Python tests and relevant Swift tests cover the embedded runtime and runtime-service contract."
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Align docs and project generation with the runtime foundation",
+      "status": "open",
+      "dependsOn": [
+        "US-001",
+        "US-002"
+      ],
+      "description": "As a contributor, I want the architecture docs and generated project files to match the runtime-backed implementation so future contributors and autonomous loops can work from accurate instructions.",
+      "acceptanceCriteria": [
+        "Architecture and onboarding/runtime documentation reflect the local runtime foundation, command surface, and current repo workflow.",
+        "Example: docs describe that the control center reads runtime-backed project/session state instead of a one-off snapshot.",
+        "Negative case: no documentation or generated project file remains out of sync with project.yml after the story is completed.",
+        "If project.yml changes, AgentAppFlow.xcodeproj/project.pbxproj is regenerated with xcodegen and included in the same story."
+      ]
+    }
+  ]
+}

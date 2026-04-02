@@ -9,11 +9,13 @@
 /* Begin PBXBuildFile section */
 		070DB00611E4271D07EC23F6 /* AgentRuntimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDBC251F7934202B7D97302 /* AgentRuntimeService.swift */; };
 		21EC11AFEFC9FA4C31F6955F /* RuntimeStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E329E5EBAC82AD4996D0D918 /* RuntimeStoreTests.swift */; };
+		2B6795FB8A7FBAFD62876443 /* AppPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BF70716BAF3392531C4FE27 /* AppPreferencesView.swift */; };
 		4262D02CCF636ABE400BF051 /* StubAgentRuntimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29A4A5D210333C64A54083CB /* StubAgentRuntimeService.swift */; };
 		53941C75F9E397AF98B72683 /* RuntimeStoreTests.swift.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6187EAEBA1E79BA6F0FCAE2B /* RuntimeStoreTests.swift.plist */; };
 		5AA90D5A2CCCFA0A4A224744 /* agentappflow_bootstrap.py in Resources */ = {isa = PBXBuildFile; fileRef = 2A5D77288488FB7FB366753D /* agentappflow_bootstrap.py */; };
 		5AD9079D1CF8A8591A9DF374 /* OnboardingFormStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 968CE2DB6D3E5F9FAB000AC6 /* OnboardingFormStateTests.swift */; };
 		65965261B82CE14F710DC5EB /* ThemeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6845388A77549F622E66923D /* ThemeController.swift */; };
+		788EE40CC85DA7424A8C7928 /* AppPreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66596E9A67279A8E5C3908E0 /* AppPreferencesStore.swift */; };
 		7FD225D6B83E11CED757F0DC /* runtime.py in Resources */ = {isa = PBXBuildFile; fileRef = 3F4E610D27937D8F06ADCE01 /* runtime.py */; };
 		8340FEAB1594781DEE22E7F0 /* FirstRunSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 584FFA286F553CA01576FB65 /* FirstRunSetupView.swift */; };
 		858D8A308268C5FEF5A1B32B /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CF13F06DB71E7C3D82E4EEE /* AppTheme.swift */; };
@@ -60,6 +62,7 @@
 		584FFA286F553CA01576FB65 /* FirstRunSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstRunSetupView.swift; sourceTree = "<group>"; };
 		6187EAEBA1E79BA6F0FCAE2B /* RuntimeStoreTests.swift.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = RuntimeStoreTests.swift.plist; sourceTree = "<group>"; };
 		638D3D9B9EDEA9C7B2A171FE /* bootstrap.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = bootstrap.py; sourceTree = "<group>"; };
+		66596E9A67279A8E5C3908E0 /* AppPreferencesStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferencesStore.swift; sourceTree = "<group>"; };
 		6845388A77549F622E66923D /* ThemeController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeController.swift; sourceTree = "<group>"; };
 		727022AE0368A1C325F61098 /* DesignSystemComponentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystemComponentTests.swift; sourceTree = "<group>"; };
 		75CF20D7A16CBA779F111943 /* ThemeModePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeModePicker.swift; sourceTree = "<group>"; };
@@ -68,6 +71,7 @@
 		8BDBC251F7934202B7D97302 /* AgentRuntimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentRuntimeService.swift; sourceTree = "<group>"; };
 		915655C8CBDBA93D5286E385 /* ControlCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlCenterView.swift; sourceTree = "<group>"; };
 		968CE2DB6D3E5F9FAB000AC6 /* OnboardingFormStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFormStateTests.swift; sourceTree = "<group>"; };
+		9BF70716BAF3392531C4FE27 /* AppPreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferencesView.swift; sourceTree = "<group>"; };
 		9E8DD259B678897073F02FC7 /* AgentAppFlow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgentAppFlow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F07E39D9A1A9384C53E81D5 /* storage.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = storage.py; sourceTree = "<group>"; };
 		B70FFE26FBEB7485DCF1FA4E /* AgentAppFlowApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentAppFlowApp.swift; sourceTree = "<group>"; };
@@ -149,6 +153,7 @@
 			isa = PBXGroup;
 			children = (
 				8BDBC251F7934202B7D97302 /* AgentRuntimeService.swift */,
+				66596E9A67279A8E5C3908E0 /* AppPreferencesStore.swift */,
 				DD5DEA93ABBC065E5D3C12AE /* AppRuntimeStore.swift */,
 				227CE79C80BF9D70456F4755 /* BootstrapCLIService.swift */,
 				E1B0F1612AD904A2ACA9B1F1 /* PythonRuntimeLocator.swift */,
@@ -169,6 +174,7 @@
 		B923B893A932428C2CA1B3E0 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				9BF70716BAF3392531C4FE27 /* AppPreferencesView.swift */,
 				915655C8CBDBA93D5286E385 /* ControlCenterView.swift */,
 				584FFA286F553CA01576FB65 /* FirstRunSetupView.swift */,
 				75CF20D7A16CBA779F111943 /* ThemeModePicker.swift */,
@@ -328,6 +334,8 @@
 				D3F624E6966BC7500446FFD2 /* AgentAppFlowApp.swift in Sources */,
 				070DB00611E4271D07EC23F6 /* AgentRuntimeService.swift in Sources */,
 				B73DF6D179B387C42E8CEF76 /* AppComponents.swift in Sources */,
+				788EE40CC85DA7424A8C7928 /* AppPreferencesStore.swift in Sources */,
+				2B6795FB8A7FBAFD62876443 /* AppPreferencesView.swift in Sources */,
 				9613D674361CF3F0F6BDA72D /* AppRuntimeStore.swift in Sources */,
 				858D8A308268C5FEF5A1B32B /* AppTheme.swift in Sources */,
 				8A60A10F834EAC5A08CC5C0B /* BootstrapCLIService.swift in Sources */,

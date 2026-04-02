@@ -321,6 +321,26 @@ struct OnboardingFormState: Equatable {
     var approvalMode: ApprovalMode = .propose
     var improvementMode: ImprovementMode = .propose
 
+    init(
+        projectName: String = "",
+        projectDescription: String = "",
+        projectPath: String = "",
+        projectType: ProjectType = .iosApp,
+        selectedPlatforms: Set<PlatformChoice> = [.ios],
+        selectedAgentTools: Set<AgentToolChoice> = [.codex, .claudeCode],
+        approvalMode: ApprovalMode = .propose,
+        improvementMode: ImprovementMode = .propose
+    ) {
+        self.projectName = projectName
+        self.projectDescription = projectDescription
+        self.projectPath = projectPath
+        self.projectType = projectType
+        self.selectedPlatforms = selectedPlatforms
+        self.selectedAgentTools = selectedAgentTools
+        self.approvalMode = approvalMode
+        self.improvementMode = improvementMode
+    }
+
     var trimmedProjectName: String {
         projectName.trimmingCharacters(in: .whitespacesAndNewlines)
     }

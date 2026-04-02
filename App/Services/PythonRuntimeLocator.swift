@@ -18,6 +18,7 @@ struct PythonRuntimeInspection: Equatable {
     let source: Source
     let interpreterPath: String?
     let version: String?
+    let overridePath: String?
 
     var canProceed: Bool {
         status == .found
@@ -52,19 +53,25 @@ struct PythonRuntimeInspection: Equatable {
     var detail: String {
         switch status {
         case .checking:
-            return "Inspecting the embedded framework and host python3 availability."
+            return overridePath == nil
+                ? "Inspecting the embedded framework and host python3 availability."
+                : "Inspecting the configured Python framework override before falling back to embedded and host runtimes."
         case .found:
             let versionLabel = version ?? "version unavailable"
             let sourceLabel: String = switch source {
-            case .embedded: "embedded framework"
+            case .embedded: overridePath == nil ? "embedded framework" : "configured framework override"
             case .host: "host python3"
             case .unavailable: "runtime"
             }
             return "Using \(sourceLabel) at \(interpreterPath ?? "unknown path") • \(versionLabel)"
         case .missing:
-            return "Install Xcode Command Line Tools or bundle Python3.framework so AgentAppFlow can run the local bootstrap flow."
+            return overridePath == nil
+                ? "Install Xcode Command Line Tools or bundle Python3.framework so AgentAppFlow can run the local bootstrap flow."
+                : "The configured Python framework override could not provide a usable Python runtime. Update the override path or bundle Python3.framework."
         case .unsupportedVersion:
-            return "Python 3.10 or newer is required. Update your host python3 or point the app at a newer embedded framework."
+            return overridePath == nil
+                ? "Python 3.10 or newer is required. Update your host python3 or point the app at a newer embedded framework."
+                : "The configured Python framework override is too old. Point AgentAppFlow at Python 3.10 or newer."
         }
     }
 
@@ -72,12 +79,14 @@ struct PythonRuntimeInspection: Equatable {
         status: .checking,
         source: .unavailable,
         interpreterPath: nil,
-        version: nil
+        version: nil,
+        overridePath: nil
     )
 }
 
 enum PythonRuntimeLocator {
     private static let embeddedFrameworkName = "Python3.framework"
+    private static let pythonFrameworkOverrideEnvKey = "AGENTAPPFLOW_PYTHON_FRAMEWORK_PATH"
     private static let embeddedExecutableNames = ["python3", "python3.12", "python3.11", "python3.10", "python3.9"]
     private static let embeddedFrameworkBinaryNames = ["Python3", "Python"]
     private static let hostPythonExecutableURL = URL(fileURLWithPath: "/usr/bin/env")
@@ -107,6 +116,13 @@ enum PythonRuntimeLocator {
         launchEnvironment(bundle: bundle, useEmbeddedPythonHome: true)
     }
 
+    static func launchEnvironment(
+        runtimeOverridePath: String?,
+        bundle: Bundle = .main
+    ) -> [String: String] {
+        launchEnvironment(runtimeOverridePath: runtimeOverridePath, bundle: bundle, useEmbeddedPythonHome: true)
+    }
+
     static func hostInterpreterURL() -> URL {
         hostPythonExecutableURL
     }
@@ -123,7 +139,22 @@ enum PythonRuntimeLocator {
         launchEnvironment(bundle: bundle, useEmbeddedPythonHome: false)
     }
 
-    static func inspect(bundle: Bundle = .main) -> PythonRuntimeInspection {
+    static func hostLaunchEnvironment(
+        runtimeOverridePath: String?,
+        bundle: Bundle = .main
+    ) -> [String: String] {
+        launchEnvironment(runtimeOverridePath: runtimeOverridePath, bundle: bundle, useEmbeddedPythonHome: false)
+    }
+
+    static func inspect(
+        runtimeOverridePath: String? = nil,
+        bundle: Bundle = .main
+    ) -> PythonRuntimeInspection {
+        let trimmedOverride = runtimeOverridePath?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmedOverride, !trimmedOverride.isEmpty {
+            return inspectRuntimeOverride(trimmedOverride)
+        }
+
         if let embeddedInterpreter = embeddedInterpreterURL(bundle: bundle) {
             let version = pythonVersion(executableURL: embeddedInterpreter, arguments: ["--version"])
             return makeInspection(
@@ -142,7 +173,8 @@ enum PythonRuntimeLocator {
                 status: .missing,
                 source: .unavailable,
                 interpreterPath: nil,
-                version: nil
+                version: nil,
+                overridePath: nil
             )
         }
 
@@ -154,6 +186,7 @@ enum PythonRuntimeLocator {
     }
 
     private static func launchEnvironment(
+        runtimeOverridePath: String? = nil,
         bundle: Bundle,
         useEmbeddedPythonHome: Bool
     ) -> [String: String] {
@@ -162,6 +195,13 @@ enum PythonRuntimeLocator {
         environment["PYTHONDONTWRITEBYTECODE"] = "1"
         environment["PYTHONUNBUFFERED"] = "1"
 
+        let trimmedOverride = runtimeOverridePath?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmedOverride, !trimmedOverride.isEmpty {
+            environment[pythonFrameworkOverrideEnvKey] = trimmedOverride
+        } else {
+            environment.removeValue(forKey: pythonFrameworkOverrideEnvKey)
+        }
+
         if useEmbeddedPythonHome, let pythonHome = embeddedPythonHomeURL(bundle: bundle) {
             environment["PYTHONHOME"] = pythonHome.path
         } else {
@@ -169,6 +209,33 @@ enum PythonRuntimeLocator {
         }
 
         return environment
+    }
+
+    private static func inspectRuntimeOverride(_ frameworkPath: String) -> PythonRuntimeInspection {
+        let frameworkURL = URL(fileURLWithPath: frameworkPath, isDirectory: true)
+        let currentVersionBinDirectory = frameworkURL.appendingPathComponent("Versions/Current/bin", isDirectory: true)
+
+        let interpreterURL = executableInBinDirectory(currentVersionBinDirectory)
+            ?? frameworkBinaryInVersionDirectory(frameworkURL.appendingPathComponent("Versions/Current", isDirectory: true))
+            ?? frameworkBinaryInVersionDirectory(frameworkURL)
+
+        guard let interpreterURL else {
+            return PythonRuntimeInspection(
+                status: .missing,
+                source: .unavailable,
+                interpreterPath: frameworkPath,
+                version: nil,
+                overridePath: frameworkPath
+            )
+        }
+
+        let version = pythonVersion(executableURL: interpreterURL, arguments: ["--version"])
+        return makeInspection(
+            source: .embedded,
+            interpreterPath: interpreterURL.path,
+            version: version,
+            overridePath: frameworkPath
+        )
     }
 
     static func embeddedInterpreterURL(bundle: Bundle = .main) -> URL? {
@@ -283,14 +350,16 @@ enum PythonRuntimeLocator {
     private static func makeInspection(
         source: PythonRuntimeInspection.Source,
         interpreterPath: String?,
-        version: String?
+        version: String?,
+        overridePath: String? = nil
     ) -> PythonRuntimeInspection {
         guard let version else {
             return PythonRuntimeInspection(
                 status: .missing,
                 source: .unavailable,
                 interpreterPath: interpreterPath,
-                version: nil
+                version: nil,
+                overridePath: overridePath
             )
         }
 
@@ -298,7 +367,8 @@ enum PythonRuntimeLocator {
             status: isSupported(version: version) ? .found : .unsupportedVersion,
             source: source,
             interpreterPath: interpreterPath,
-            version: version
+            version: version,
+            overridePath: overridePath
         )
     }
 

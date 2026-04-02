@@ -1,7 +1,32 @@
 import Darwin
 import Foundation
 
+struct RuntimeCapabilities: Equatable {
+    let canStartSessions: Bool
+    let canRemoveProjects: Bool
+    let canRebootstrapProjects: Bool
+    let canUpdateProjectSettings: Bool
+    let canResolveProposals: Bool
+
+    static let livePhase2 = RuntimeCapabilities(
+        canStartSessions: true,
+        canRemoveProjects: false,
+        canRebootstrapProjects: false,
+        canUpdateProjectSettings: false,
+        canResolveProposals: false
+    )
+
+    static let fullStub = RuntimeCapabilities(
+        canStartSessions: true,
+        canRemoveProjects: true,
+        canRebootstrapProjects: true,
+        canUpdateProjectSettings: true,
+        canResolveProposals: true
+    )
+}
+
 protocol AgentRuntimeServing {
+    var capabilities: RuntimeCapabilities { get }
     func healthCheck() async throws -> RuntimeHealth
     func bootstrap(request: BootstrapRequest, force: Bool) async throws -> BootstrapCommandResult
     func registerProject(
@@ -11,6 +36,30 @@ protocol AgentRuntimeServing {
     func listProjects() async throws -> [RegisteredProject]
     func getProject(id: String) async throws -> ProjectDetail
     func startSession(projectID: String, title: String?) async throws -> SessionRecord
+    func removeProject(id: String) async throws
+    func rebootstrapProject(id: String) async throws -> ProjectDetail
+    func updateProjectSettings(id: String, settings: ProjectSettingsSnapshot) async throws -> ProjectDetail
+    func resolveProposal(projectID: String, proposalID: String, approve: Bool) async throws -> ProjectDetail
+}
+
+extension AgentRuntimeServing {
+    var capabilities: RuntimeCapabilities { .livePhase2 }
+
+    func removeProject(id: String) async throws {
+        throw AgentRuntimeError.unsupportedOperation("Removing a project is not supported by the current runtime.")
+    }
+
+    func rebootstrapProject(id: String) async throws -> ProjectDetail {
+        throw AgentRuntimeError.unsupportedOperation("Re-bootstrap is not supported by the current runtime.")
+    }
+
+    func updateProjectSettings(id: String, settings: ProjectSettingsSnapshot) async throws -> ProjectDetail {
+        throw AgentRuntimeError.unsupportedOperation("Project settings are not supported by the current runtime.")
+    }
+
+    func resolveProposal(projectID: String, proposalID: String, approve: Bool) async throws -> ProjectDetail {
+        throw AgentRuntimeError.unsupportedOperation("Framework proposals are not supported by the current runtime.")
+    }
 }
 
 enum AgentRuntimeError: LocalizedError {
@@ -19,6 +68,7 @@ enum AgentRuntimeError: LocalizedError {
     case invalidResponse(String)
     case socketFailure(String)
     case rpcFailure(Int, String)
+    case unsupportedOperation(String)
 
     var errorDescription: String? {
         switch self {
@@ -31,6 +81,8 @@ enum AgentRuntimeError: LocalizedError {
         case .socketFailure(let message):
             "Failed to communicate with the local runtime: \(message)"
         case .rpcFailure(_, let message):
+            message
+        case .unsupportedOperation(let message):
             message
         }
     }
@@ -72,6 +124,13 @@ private enum RuntimeJSON {
 
 private actor AgentRuntimeManager {
     static let shared = AgentRuntimeManager()
+
+    private let pythonFrameworkOverride: String?
+
+    init(pythonFrameworkOverride: String? = nil) {
+        self.pythonFrameworkOverride = pythonFrameworkOverride?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     private struct RuntimeLaunchAttempt {
         let name: String
@@ -179,7 +238,7 @@ private actor AgentRuntimeManager {
                         command: "serve",
                         additionalArguments: additionalArguments
                     ),
-                    environment: PythonRuntimeLocator.launchEnvironment()
+                    environment: PythonRuntimeLocator.launchEnvironment(runtimeOverridePath: pythonFrameworkOverride)
                 )
             )
         }
@@ -193,7 +252,7 @@ private actor AgentRuntimeManager {
                     command: "serve",
                     additionalArguments: additionalArguments
                 ),
-                environment: PythonRuntimeLocator.hostLaunchEnvironment()
+                environment: PythonRuntimeLocator.hostLaunchEnvironment(runtimeOverridePath: pythonFrameworkOverride)
             )
         )
 
@@ -343,8 +402,8 @@ private enum UNIXDomainSocketClient {
 final class AgentRuntimeService: AgentRuntimeServing {
     private let runtimeManager: AgentRuntimeManager
 
-    init() {
-        runtimeManager = .shared
+    init(pythonFrameworkOverride: String? = nil) {
+        runtimeManager = AgentRuntimeManager(pythonFrameworkOverride: pythonFrameworkOverride)
     }
 
     func healthCheck() async throws -> RuntimeHealth {
