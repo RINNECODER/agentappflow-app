@@ -184,17 +184,23 @@ def write_text_file(
     root: Path,
     created: list[str],
     skipped: list[str],
+    warnings: list[str],
     *,
     force: bool,
 ) -> None:
+    relative = relative_path(path, root)
     if path.exists():
         if path.is_dir():
             raise BootstrapError(f"Expected file but found directory at {path}")
-        if not force and path.read_text(encoding="utf-8") == contents:
-            skipped.append(relative_path(path, root))
+        if not force:
+            if path.read_text(encoding="utf-8") == contents:
+                skipped.append(relative)
+                return
+            skipped.append(relative)
+            warnings.append(f"Skipped divergent existing file without force: {relative}")
             return
     atomic_write_text(path, contents)
-    created.append(relative_path(path, root))
+    created.append(relative)
 
 
 def render_yaml_multiline_field(key: str, value: str) -> str:
@@ -371,6 +377,7 @@ def bootstrap_project(request: BootstrapRequest, *, force: bool = False) -> Boot
         root,
         created,
         skipped,
+        warnings,
         force=force,
     )
     write_text_file(
@@ -379,6 +386,7 @@ def bootstrap_project(request: BootstrapRequest, *, force: bool = False) -> Boot
         root,
         created,
         skipped,
+        warnings,
         force=force,
     )
     write_text_file(
@@ -387,6 +395,7 @@ def bootstrap_project(request: BootstrapRequest, *, force: bool = False) -> Boot
         root,
         created,
         skipped,
+        warnings,
         force=force,
     )
     write_text_file(
@@ -395,6 +404,7 @@ def bootstrap_project(request: BootstrapRequest, *, force: bool = False) -> Boot
         root,
         created,
         skipped,
+        warnings,
         force=force,
     )
     write_text_file(
@@ -403,6 +413,7 @@ def bootstrap_project(request: BootstrapRequest, *, force: bool = False) -> Boot
         root,
         created,
         skipped,
+        warnings,
         force=force,
     )
     write_text_file(
@@ -411,6 +422,7 @@ def bootstrap_project(request: BootstrapRequest, *, force: bool = False) -> Boot
         root,
         created,
         skipped,
+        warnings,
         force=force,
     )
 

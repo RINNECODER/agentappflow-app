@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,21 +10,17 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agentappflow_core"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from bootstrap import BootstrapRequest, CommandResult
+from git_helpers import init_repo
 from storage import ProjectRegistry, SessionRegistry, atomic_write_text
 
 
 class StorageTests(unittest.TestCase):
     def create_repo(self) -> Path:
         temp_dir = Path(tempfile.mkdtemp(prefix="agentappflow-storage-repo-"))
-        subprocess.run(
-            ["git", "init"],
-            cwd=temp_dir,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        init_repo(temp_dir)
         return temp_dir
 
     def make_request(self, repo_path: Path) -> BootstrapRequest:
@@ -169,6 +164,38 @@ class StorageTests(unittest.TestCase):
         migrated = sessions.list_sessions(project_id="project-1")
         self.assertEqual(len(migrated), 1)
         self.assertTrue((sessions_dir / "project-1.ndjson").exists())
+
+    def test_session_registry_rejects_project_id_path_traversal(self) -> None:
+        base_dir = Path(tempfile.mkdtemp(prefix="agentappflow-session-traversal-"))
+        sessions = SessionRegistry(base_dir)
+        outside_path = base_dir / "runtime" / "outside.ndjson"
+
+        with self.assertRaises(ValueError):
+            sessions.start_session(project_id="../outside", title="Invalid")
+        with self.assertRaises(ValueError):
+            sessions.list_sessions(project_id="../outside")
+
+        self.assertFalse(outside_path.exists())
+        self.assertFalse((base_dir / "outside.ndjson").exists())
+
+    def test_session_registry_rejects_session_id_path_traversal(self) -> None:
+        base_dir = Path(tempfile.mkdtemp(prefix="agentappflow-session-id-traversal-"))
+        sessions = SessionRegistry(base_dir)
+        session = sessions.start_session(project_id="project-1", title="Valid")
+
+        with self.assertRaises(ValueError):
+            sessions.record_task_result(
+                "../outside",
+                project_id="project-1",
+                name="Invalid",
+                status="completed",
+                outcome="success",
+            )
+        with self.assertRaises(ValueError):
+            sessions.end_session("../outside", project_id="project-1", outcome="success")
+
+        self.assertEqual(sessions.get_session(session.id, project_id="project-1").id, session.id)
+        self.assertFalse((base_dir / "runtime" / "outside.ndjson").exists())
 
     def test_find_by_path_returns_registered_project(self) -> None:
         repo_path = self.create_repo()

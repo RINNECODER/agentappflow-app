@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 import threading
 from dataclasses import asdict, dataclass, field
@@ -16,6 +17,7 @@ except ImportError:  # pragma: no cover - bundled resource import path
     from bootstrap import BootstrapRequest, CommandResult
 
 PROJECT_REGISTRY_VERSION = 2
+STORAGE_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 
 
 def current_timestamp() -> str:
@@ -27,6 +29,17 @@ def default_data_directory() -> Path:
     if runtime_home:
         return Path(runtime_home).expanduser().resolve()
     return Path.home() / "Library" / "Application Support" / "AgentAppFlow"
+
+
+def validate_storage_identifier(value: str, label: str) -> str:
+    identifier = str(value).strip()
+    if not identifier:
+        raise ValueError(f"{label} is required.")
+    if "/" in identifier or "\\" in identifier or ".." in identifier:
+        raise ValueError(f"{label} may not contain path separators or traversal.")
+    if not STORAGE_IDENTIFIER_PATTERN.fullmatch(identifier):
+        raise ValueError(f"{label} contains unsupported characters.")
+    return identifier
 
 
 def atomic_write_text(path: Path, contents: str) -> None:
@@ -230,8 +243,8 @@ class SessionRecord:
     def create(cls, project_id: str, title: str, metadata: dict[str, Any] | None = None) -> "SessionRecord":
         timestamp = current_timestamp()
         return cls(
-            id=uuid4().hex,
-            project_id=project_id,
+            id=validate_storage_identifier(uuid4().hex, "session_id"),
+            project_id=validate_storage_identifier(project_id, "project_id"),
             title=title,
             status="running",
             created_at=timestamp,
@@ -409,13 +422,22 @@ class SessionRegistry:
         self._migrate_legacy_sessions()
 
     def _session_file(self, project_id: str) -> Path:
-        return self.sessions_dir / f"{project_id}.ndjson"
+        safe_project_id = validate_storage_identifier(project_id, "project_id")
+        path = (self.sessions_dir / f"{safe_project_id}.ndjson").resolve()
+        sessions_root = self.sessions_dir.resolve()
+        try:
+            path.relative_to(sessions_root)
+        except ValueError as error:  # pragma: no cover - guarded by identifier validation
+            raise ValueError("project_id resolves outside the sessions directory.") from error
+        return path
 
     def _append_snapshot_unlocked(self, session: SessionRecord) -> None:
+        validate_storage_identifier(session.id, "session_id")
         line = json.dumps(session.to_dict(), sort_keys=True) + "\n"
         append_text_line(self._session_file(session.project_id), line)
 
     def _load_project_sessions_unlocked(self, project_id: str) -> list[SessionRecord]:
+        project_id = validate_storage_identifier(project_id, "project_id")
         path = self._session_file(project_id)
         if not path.exists():
             return []
@@ -428,6 +450,8 @@ class SessionRegistry:
                     continue
                 payload = json.loads(line)
                 session = SessionRecord.from_dict(payload)
+                validate_storage_identifier(session.id, "session_id")
+                validate_storage_identifier(session.project_id, "project_id")
                 sessions[session.id] = session
         return sorted(sessions.values(), key=lambda item: item.started_at, reverse=True)
 
@@ -450,7 +474,7 @@ class SessionRegistry:
     def list_sessions(self, project_id: str | None = None) -> list[SessionRecord]:
         with self._lock:
             if project_id is not None:
-                return self._load_project_sessions_unlocked(project_id)
+                return self._load_project_sessions_unlocked(validate_storage_identifier(project_id, "project_id"))
 
             sessions: list[SessionRecord] = []
             if not self.sessions_dir.exists():
@@ -461,9 +485,10 @@ class SessionRegistry:
 
     def get_session(self, session_id: str, *, project_id: str | None = None) -> SessionRecord | None:
         with self._lock:
+            session_id = validate_storage_identifier(session_id, "session_id")
             candidate_projects: list[str]
             if project_id is not None:
-                candidate_projects = [project_id]
+                candidate_projects = [validate_storage_identifier(project_id, "project_id")]
             else:
                 if not self.sessions_dir.exists():
                     return None
@@ -476,7 +501,7 @@ class SessionRegistry:
         return None
 
     def latest_session(self, project_id: str) -> SessionRecord | None:
-        sessions = self.list_sessions(project_id=project_id)
+        sessions = self.list_sessions(project_id=validate_storage_identifier(project_id, "project_id"))
         return sessions[0] if sessions else None
 
     def start_session(
@@ -487,6 +512,7 @@ class SessionRegistry:
         metadata: dict[str, Any] | None = None,
     ) -> SessionRecord:
         with self._lock:
+            project_id = validate_storage_identifier(project_id, "project_id")
             session = SessionRecord.create(project_id=project_id, title=title, metadata=metadata)
             self._append_snapshot_unlocked(session)
             return session
@@ -503,6 +529,9 @@ class SessionRegistry:
         project_id: str | None = None,
     ) -> SessionRecord:
         with self._lock:
+            session_id = validate_storage_identifier(session_id, "session_id")
+            if project_id is not None:
+                project_id = validate_storage_identifier(project_id, "project_id")
             session = self.get_session(session_id, project_id=project_id)
             if session is None:
                 raise KeyError(f"Unknown session id: {session_id}")
@@ -526,6 +555,9 @@ class SessionRegistry:
         project_id: str | None = None,
     ) -> SessionRecord:
         with self._lock:
+            session_id = validate_storage_identifier(session_id, "session_id")
+            if project_id is not None:
+                project_id = validate_storage_identifier(project_id, "project_id")
             session = self.get_session(session_id, project_id=project_id)
             if session is None:
                 raise KeyError(f"Unknown session id: {session_id}")

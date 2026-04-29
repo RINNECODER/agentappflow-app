@@ -13,8 +13,10 @@ from unittest import mock
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import agentappflow_bootstrap as cli_module
+from git_helpers import init_repo
 
 
 class CLISmokeTests(unittest.TestCase):
@@ -22,13 +24,7 @@ class CLISmokeTests(unittest.TestCase):
         self.repo_root = Path(__file__).resolve().parents[2]
         self.runtime_home = Path(tempfile.mkdtemp(prefix="agentappflow-cli-runtime-"))
         self.project_repo = Path(tempfile.mkdtemp(prefix="agentappflow-cli-project-"))
-        subprocess.run(
-            ["git", "init"],
-            cwd=self.project_repo,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        init_repo(self.project_repo)
         self.request_path = self.project_repo / "bootstrap-request.json"
         self.request_path.write_text(
             json.dumps(

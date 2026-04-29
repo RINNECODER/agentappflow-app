@@ -16,9 +16,11 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agentappflow_core"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import runtime as runtime_module
 from bootstrap import BootstrapRequest, bootstrap_project
+from git_helpers import init_repo
 from runtime import AgentAppFlowRuntime
 from storage import default_data_directory
 
@@ -26,13 +28,7 @@ from storage import default_data_directory
 class RuntimeWorkflowTests(unittest.TestCase):
     def create_repo(self) -> Path:
         temp_dir = Path(tempfile.mkdtemp(prefix="agentappflow-runtime-"))
-        subprocess.run(
-            ["git", "init"],
-            cwd=temp_dir,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        init_repo(temp_dir)
         return temp_dir
 
     def make_request(self, repo_path: Path) -> BootstrapRequest:
@@ -211,6 +207,68 @@ class RuntimeWorkflowTests(unittest.TestCase):
         self.assertEqual(first_project["id"], second_project["id"])
         self.assertEqual(second_project["project_name"], "RuntimeRepo Renamed")
         self.assertEqual(second_project["approval_mode"], "observe")
+
+    def test_register_project_without_bootstrap_result_does_not_rewrite_files(self) -> None:
+        repo_path = self.create_repo()
+        request = self.make_request(repo_path)
+        bootstrap_project(request)
+        agents_path = repo_path / "AGENTS.md"
+        original_agents = "# Repo-specific instructions\n"
+        agents_path.write_text(original_agents, encoding="utf-8")
+        runtime = AgentAppFlowRuntime(base_dir=Path(tempfile.mkdtemp(prefix="agentappflow-register-only-")))
+
+        project = runtime.handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": "1",
+                "method": "register_project",
+                "params": request.to_dict(),
+            }
+        )["result"]
+
+        self.assertEqual(agents_path.read_text(encoding="utf-8"), original_agents)
+        self.assertEqual(project["created_items"], [])
+        self.assertEqual(project["skipped_items"], [])
+        self.assertEqual(project["warnings"], [])
+
+    def test_bootstrap_project_force_false_string_does_not_overwrite(self) -> None:
+        repo_path = self.create_repo()
+        request = self.make_request(repo_path)
+        bootstrap_project(request)
+        agents_path = repo_path / "AGENTS.md"
+        original_agents = "# Repo-specific instructions\n"
+        agents_path.write_text(original_agents, encoding="utf-8")
+        runtime = AgentAppFlowRuntime(base_dir=Path(tempfile.mkdtemp(prefix="agentappflow-force-string-")))
+
+        response = runtime.handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": "1",
+                "method": "bootstrap_project",
+                "params": {**request.to_dict(), "force": "false"},
+            }
+        )
+
+        self.assertNotIn("error", response)
+        self.assertEqual(agents_path.read_text(encoding="utf-8"), original_agents)
+        self.assertIn("AGENTS.md", response["result"]["skipped"])
+        self.assertTrue(any("AGENTS.md" in warning for warning in response["result"]["warnings"]))
+
+    def test_bootstrap_project_rejects_invalid_force_value(self) -> None:
+        repo_path = self.create_repo()
+        request = self.make_request(repo_path)
+        runtime = AgentAppFlowRuntime(base_dir=Path(tempfile.mkdtemp(prefix="agentappflow-force-invalid-")))
+
+        response = runtime.handle_request(
+            {
+                "jsonrpc": "2.0",
+                "id": "1",
+                "method": "bootstrap_project",
+                "params": {**request.to_dict(), "force": "sometimes"},
+            }
+        )
+
+        self.assertEqual(response["error"]["code"], -32602)
 
     def test_concurrent_session_starts_preserve_session_count(self) -> None:
         repo_path = self.create_repo()

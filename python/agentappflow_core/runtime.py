@@ -11,10 +11,10 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from .bootstrap import BootstrapError, BootstrapRequest, bootstrap_project, validate_bootstrap_exists
+    from .bootstrap import BootstrapError, BootstrapRequest, CommandResult, bootstrap_project, validate_bootstrap_exists
     from .storage import ProjectRegistry, SessionRegistry, default_data_directory
 except ImportError:  # pragma: no cover - bundled resource import path
-    from bootstrap import BootstrapError, BootstrapRequest, bootstrap_project, validate_bootstrap_exists
+    from bootstrap import BootstrapError, BootstrapRequest, CommandResult, bootstrap_project, validate_bootstrap_exists
     from storage import ProjectRegistry, SessionRegistry, default_data_directory
 
 RUNTIME_VERSION = "0.4.0"
@@ -69,6 +69,8 @@ class AgentAppFlowRuntime:
             return self._error_response(request_id, -32001, str(error))
         except JSONRPCError as error:
             return self._error_response(request_id, error.code, error.message)
+        except ValueError as error:
+            return self._error_response(request_id, -32602, str(error))
         except Exception as error:  # pragma: no cover - defensive server handling
             return self._error_response(request_id, -32099, f"Unexpected runtime failure: {error}")
 
@@ -108,7 +110,7 @@ class AgentAppFlowRuntime:
 
     def rpc_bootstrap_project(self, params: dict[str, Any]) -> dict[str, Any]:
         request = BootstrapRequest.from_dict(params)
-        result = bootstrap_project(request, force=bool(params.get("force", False)))
+        result = bootstrap_project(request, force=self._parse_force(params.get("force", False)))
         return result.to_dict()
 
     def rpc_register_project(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -120,7 +122,13 @@ class AgentAppFlowRuntime:
         if isinstance(result_payload, dict):
             command_result = self._decode_command_result(result_payload)
         else:
-            command_result = bootstrap_project(request)
+            command_result = CommandResult(
+                ok=True,
+                message="Existing AgentAppFlow bootstrap validated; no repository files were written.",
+                created=[],
+                skipped=[],
+                warnings=[],
+            )
         project = self.project_registry.register_project(request, command_result)
         return project.to_dict()
 
@@ -208,11 +216,6 @@ class AgentAppFlowRuntime:
         return {"session": session.to_dict()}
 
     def _decode_command_result(self, payload: dict[str, Any]):
-        try:
-            from .bootstrap import CommandResult
-        except ImportError:  # pragma: no cover - bundled resource import path
-            from bootstrap import CommandResult
-
         return CommandResult(
             ok=bool(payload.get("ok", True)),
             message=str(payload.get("message", "")),
@@ -220,6 +223,19 @@ class AgentAppFlowRuntime:
             skipped=[str(item) for item in payload.get("skipped", [])],
             warnings=[str(item) for item in payload.get("warnings", [])],
         )
+
+    def _parse_force(self, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return False
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"", "false", "0", "no", "off"}:
+                return False
+            if normalized in {"true", "1", "yes", "on"}:
+                return True
+        raise JSONRPCError(-32602, "force must be a boolean or boolean string.")
 
     def _error_response(self, request_id: Any, code: int, message: str) -> dict[str, Any]:
         return {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": message}}
