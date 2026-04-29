@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "total": 3,
+  "remaining": 3,
+  "quality_gates": [
+    "Inspect git status before editing and do not mix unrelated dirty files into a story commit",
+    "python3 -m pytest python/tests when Python runtime files change",
+    "xcodegen generate when Swift sources, project.yml, or the Xcode project need sync",
+    "xcodebuild -project AgentAppFlow.xcodeproj -scheme AgentAppFlow -destination 'platform=macOS' test when Swift or Xcode project files change",
+    "Update docs when runtime architecture or developer workflow changes"
+  ],
+  "id": "US-001",
+  "title": "Complete runtime-backed onboarding handoff"
+}

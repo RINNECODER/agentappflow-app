@@ -1,6 +1,6 @@
 import Foundation
 
-struct BootstrapCommandResult: Decodable, Equatable {
+struct BootstrapCommandResult: Codable, Equatable {
     let ok: Bool
     let message: String
     let created: [String]
@@ -25,6 +25,12 @@ enum BootstrapServiceError: LocalizedError {
 }
 
 final class BootstrapCLIService {
+    private let pythonFrameworkOverride: String?
+
+    init(pythonFrameworkOverride: String? = nil) {
+        self.pythonFrameworkOverride = pythonFrameworkOverride
+    }
+
     func bootstrap(request: BootstrapRequest, force: Bool = false) async throws -> BootstrapCommandResult {
         try await Task.detached(priority: .userInitiated) {
             let encoder = JSONEncoder()
@@ -41,21 +47,24 @@ final class BootstrapCLIService {
             let scriptURL = try Self.bootstrapScriptURL()
             let payload = try encoder.encode(request)
             try payload.write(to: tempFileURL)
+            let executableURL = try PythonRuntimeLocator.interpreterURL(
+                runtimeOverridePath: self.pythonFrameworkOverride
+            )
 
             let process = Process()
             let stdoutPipe = Pipe()
             let stderrPipe = Pipe()
 
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = [
-                "python3",
-                scriptURL.path,
-                "bootstrap_project",
-                "--input",
-                tempFileURL.path
-            ] + (force ? ["--force"] : [])
+            process.executableURL = executableURL
+            process.arguments = try PythonRuntimeLocator.launchArguments(
+                scriptURL: scriptURL,
+                command: "bootstrap",
+                additionalArguments: ["--input", tempFileURL.path] + (force ? ["--force"] : []),
+                runtimeOverridePath: self.pythonFrameworkOverride
+            )
             process.standardOutput = stdoutPipe
             process.standardError = stderrPipe
+            process.environment = PythonRuntimeLocator.launchEnvironment(runtimeOverridePath: self.pythonFrameworkOverride)
 
             try process.run()
             process.waitUntilExit()

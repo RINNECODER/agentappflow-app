@@ -10,9 +10,21 @@ targets:
     type: application
     platform: macOS
     deploymentTarget: "15.0"
+    postBuildScripts:
+      - name: Embed Python Runtime
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          /bin/sh "${SRCROOT}/scripts/embed_python_runtime.sh"
     sources:
       - path: App
       - path: python/agentappflow_bootstrap.py
+        buildPhase: resources
+      - path: python/agentappflow_core/bootstrap.py
+        buildPhase: resources
+      - path: python/agentappflow_core/runtime.py
+        buildPhase: resources
+      - path: python/agentappflow_core/storage.py
         buildPhase: resources
     settings:
       base:

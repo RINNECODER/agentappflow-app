@@ -124,7 +124,7 @@ enum AgentToolChoice: String, CaseIterable, Codable, Identifiable, Hashable {
 }
 
 enum ApprovalMode: String, CaseIterable, Codable, Identifiable {
-    case manual
+    case observe
     case propose
     case auto
 
@@ -132,8 +132,8 @@ enum ApprovalMode: String, CaseIterable, Codable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .manual:
-            "Manual"
+        case .observe:
+            "Observe"
         case .propose:
             "Propose"
         case .auto:
@@ -143,12 +143,43 @@ enum ApprovalMode: String, CaseIterable, Codable, Identifiable {
 
     var subtitle: String {
         switch self {
-        case .manual:
-            "Require direct confirmation before changes."
+        case .observe:
+            "Review every framework write before it lands."
         case .propose:
-            "Draft framework updates and review them before activation."
+            "Generate changes as reviewable proposals."
         case .auto:
             "Allow framework-owned files to update automatically."
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+
+        switch rawValue {
+        case "observe", "manual":
+            self = .observe
+        case "propose":
+            self = .propose
+        case "auto":
+            self = .auto
+        default:
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unknown ApprovalMode value \(rawValue)"
+            )
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .observe:
+            try container.encode("manual")
+        case .propose:
+            try container.encode("propose")
+        case .auto:
+            try container.encode("auto")
         }
     }
 }
@@ -185,6 +216,7 @@ enum ImprovementMode: String, CaseIterable, Codable, Identifiable {
 
 struct BootstrapRequest: Codable, Equatable {
     let projectName: String
+    let projectDescription: String
     let projectPath: String
     let projectType: ProjectType
     let platforms: [PlatformChoice]
@@ -194,6 +226,7 @@ struct BootstrapRequest: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case projectName = "project_name"
+        case projectDescription = "project_description"
         case projectPath = "project_path"
         case projectType = "project_type"
         case platforms
@@ -205,7 +238,11 @@ struct BootstrapRequest: Codable, Equatable {
 
 enum OnboardingValidationError: LocalizedError, Equatable {
     case missingProjectPath
+    case repositoryDoesNotExist
+    case projectPathIsNotDirectory
+    case pathIsNotGitRepository
     case missingProjectName
+    case invalidProjectNameLength(minimum: Int, maximum: Int)
     case noPlatformsSelected
     case noAgentToolsSelected
 
@@ -213,8 +250,16 @@ enum OnboardingValidationError: LocalizedError, Equatable {
         switch self {
         case .missingProjectPath:
             "Choose a repository folder to initialize."
+        case .repositoryDoesNotExist:
+            "The selected repository folder could not be found."
+        case .projectPathIsNotDirectory:
+            "Choose a folder instead of a file."
+        case .pathIsNotGitRepository:
+            "The selected folder is not a git repository."
         case .missingProjectName:
             "Enter a project name before initialization."
+        case .invalidProjectNameLength(let minimum, let maximum):
+            "Project name must be between \(minimum) and \(maximum) characters."
         case .noPlatformsSelected:
             "Select at least one platform."
         case .noAgentToolsSelected:
@@ -223,8 +268,56 @@ enum OnboardingValidationError: LocalizedError, Equatable {
     }
 }
 
+struct OnboardingValidationSnapshot: Equatable {
+    let projectPathState: AppFieldState
+    let projectNameState: AppFieldState
+}
+
+struct BootstrapPreviewPlan: Equatable {
+    let treeItems: [String]
+    let createdItems: [String]
+    let approvalSummary: String
+    let improvementSummary: String
+
+    init(request: BootstrapRequest) {
+        let frameworkItems = [
+            ".agentappflow/",
+            ".agentappflow/project.yaml",
+            ".agentappflow/rules/default.md",
+            ".agentappflow/templates/session.md",
+            ".agentappflow/templates/retro.md",
+            ".agentappflow/memory/",
+            ".agentappflow/sessions/",
+            ".agentappflow/retros/",
+            ".agentappflow/proposals/",
+            ".agentappflow/cache/",
+        ]
+        let guideItems = Self.guideItems(for: request.agentTools)
+
+        treeItems = frameworkItems + guideItems
+        createdItems = frameworkItems + guideItems
+
+        approvalSummary = request.approvalMode.subtitle
+        improvementSummary = request.improvementMode.subtitle
+    }
+
+    private static func guideItems(for agentTools: [AgentToolChoice]) -> [String] {
+        var items: [String] = []
+        if agentTools.contains(.codex) {
+            items.append("AGENTS.md")
+        }
+        if agentTools.contains(.claudeCode) {
+            items.append("CLAUDE.md")
+        }
+        return items
+    }
+}
+
 struct OnboardingFormState: Equatable {
+    static let projectNameLengthRange = 3...40
+
     var projectName = ""
+    var projectDescription = ""
     var projectPath = ""
     var projectType: ProjectType = .iosApp
     var selectedPlatforms: Set<PlatformChoice> = [.ios]
@@ -232,25 +325,134 @@ struct OnboardingFormState: Equatable {
     var approvalMode: ApprovalMode = .propose
     var improvementMode: ImprovementMode = .propose
 
-    mutating func populateProjectNameIfNeeded() {
-        let trimmedName = projectName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedName.isEmpty, !projectPath.isEmpty else { return }
+    init(
+        projectName: String = "",
+        projectDescription: String = "",
+        projectPath: String = "",
+        projectType: ProjectType = .iosApp,
+        selectedPlatforms: Set<PlatformChoice> = [.ios],
+        selectedAgentTools: Set<AgentToolChoice> = [.codex, .claudeCode],
+        approvalMode: ApprovalMode = .propose,
+        improvementMode: ImprovementMode = .propose
+    ) {
+        self.projectName = projectName
+        self.projectDescription = projectDescription
+        self.projectPath = projectPath
+        self.projectType = projectType
+        self.selectedPlatforms = selectedPlatforms
+        self.selectedAgentTools = selectedAgentTools
+        self.approvalMode = approvalMode
+        self.improvementMode = improvementMode
+    }
 
-        let inferredName = URL(fileURLWithPath: projectPath).lastPathComponent
+    var trimmedProjectName: String {
+        projectName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var trimmedProjectDescription: String {
+        projectDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var trimmedProjectPath: String {
+        projectPath.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    mutating func populateProjectNameIfNeeded() {
+        guard trimmedProjectName.isEmpty, !trimmedProjectPath.isEmpty else { return }
+
+        let inferredName = URL(fileURLWithPath: trimmedProjectPath).lastPathComponent
         if !inferredName.isEmpty {
             projectName = inferredName
         }
     }
 
-    func makeRequest() throws -> BootstrapRequest {
-        let trimmedPath = projectPath.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedName = projectName.trimmingCharacters(in: .whitespacesAndNewlines)
+    func validationSnapshot(fileManager: FileManager = .default) -> OnboardingValidationSnapshot {
+        OnboardingValidationSnapshot(
+            projectPathState: projectPathState(fileManager: fileManager),
+            projectNameState: projectNameState()
+        )
+    }
 
+    func projectPathError(fileManager: FileManager = .default) -> OnboardingValidationError? {
+        let trimmedPath = trimmedProjectPath
         guard !trimmedPath.isEmpty else {
-            throw OnboardingValidationError.missingProjectPath
+            return .missingProjectPath
         }
+
+        var isDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: trimmedPath, isDirectory: &isDirectory) else {
+            return .repositoryDoesNotExist
+        }
+
+        guard isDirectory.boolValue else {
+            return .projectPathIsNotDirectory
+        }
+
+        let gitURL = URL(fileURLWithPath: trimmedPath).appendingPathComponent(".git")
+        guard fileManager.fileExists(atPath: gitURL.path) else {
+            return .pathIsNotGitRepository
+        }
+
+        return nil
+    }
+
+    func projectNameError() -> OnboardingValidationError? {
+        let trimmedName = trimmedProjectName
         guard !trimmedName.isEmpty else {
-            throw OnboardingValidationError.missingProjectName
+            return .missingProjectName
+        }
+
+        guard Self.projectNameLengthRange.contains(trimmedName.count) else {
+            return .invalidProjectNameLength(
+                minimum: Self.projectNameLengthRange.lowerBound,
+                maximum: Self.projectNameLengthRange.upperBound
+            )
+        }
+
+        return nil
+    }
+
+    func projectPathState(fileManager: FileManager = .default) -> AppFieldState {
+        let trimmedPath = trimmedProjectPath
+        guard !trimmedPath.isEmpty else {
+            return .normal
+        }
+
+        if let error = projectPathError(fileManager: fileManager) {
+            return .error(error.errorDescription ?? "Invalid repository.")
+        }
+
+        return .valid("Git repository detected")
+    }
+
+    func projectNameState() -> AppFieldState {
+        let trimmedName = trimmedProjectName
+        guard !trimmedName.isEmpty else {
+            return .normal
+        }
+
+        if let error = projectNameError() {
+            return .error(error.errorDescription ?? "Invalid project name.")
+        }
+
+        let remaining = Self.projectNameLengthRange.upperBound - trimmedName.count
+        return .valid("\(remaining) characters remaining")
+    }
+
+    func previewPlan() throws -> BootstrapPreviewPlan {
+        BootstrapPreviewPlan(request: try makeRequest(fileManager: .default))
+    }
+
+    func makeRequest(fileManager: FileManager = .default) throws -> BootstrapRequest {
+        let trimmedPath = trimmedProjectPath
+        let trimmedName = trimmedProjectName
+        let trimmedDescription = trimmedProjectDescription
+
+        if let projectPathError = projectPathError(fileManager: fileManager) {
+            throw projectPathError
+        }
+        if let projectNameError = projectNameError() {
+            throw projectNameError
         }
         guard !selectedPlatforms.isEmpty else {
             throw OnboardingValidationError.noPlatformsSelected
@@ -261,6 +463,7 @@ struct OnboardingFormState: Equatable {
 
         return BootstrapRequest(
             projectName: trimmedName,
+            projectDescription: trimmedDescription,
             projectPath: trimmedPath,
             projectType: projectType,
             platforms: selectedPlatforms.sorted(by: { $0.rawValue < $1.rawValue }),
