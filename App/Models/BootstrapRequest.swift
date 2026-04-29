@@ -280,32 +280,36 @@ struct BootstrapPreviewPlan: Equatable {
     let improvementSummary: String
 
     init(request: BootstrapRequest) {
-        let adapterItems = request.agentTools.map { tool in
-            ".agentappflow/adapters/\(tool.rawValue).md"
-        }
-
-        treeItems = [
+        let frameworkItems = [
             ".agentappflow/",
             ".agentappflow/project.yaml",
-            ".agentappflow/context/project-brief.md",
-            ".agentappflow/sessions/.gitkeep",
-            ".agentappflow/adapters/",
-        ] + adapterItems + [
-            "AGENTS.md",
-            "CLAUDE.md",
+            ".agentappflow/rules/default.md",
+            ".agentappflow/templates/session.md",
+            ".agentappflow/templates/retro.md",
+            ".agentappflow/memory/",
+            ".agentappflow/sessions/",
+            ".agentappflow/retros/",
+            ".agentappflow/proposals/",
+            ".agentappflow/cache/",
         ]
+        let guideItems = Self.guideItems(for: request.agentTools)
 
-        createdItems = [
-            ".agentappflow/project.yaml",
-            ".agentappflow/context/project-brief.md",
-            ".agentappflow/sessions/.gitkeep",
-        ] + adapterItems + [
-            "AGENTS.md",
-            "CLAUDE.md",
-        ]
+        treeItems = frameworkItems + guideItems
+        createdItems = frameworkItems + guideItems
 
         approvalSummary = request.approvalMode.subtitle
         improvementSummary = request.improvementMode.subtitle
+    }
+
+    private static func guideItems(for agentTools: [AgentToolChoice]) -> [String] {
+        var items: [String] = []
+        if agentTools.contains(.codex) {
+            items.append("AGENTS.md")
+        }
+        if agentTools.contains(.claudeCode) {
+            items.append("CLAUDE.md")
+        }
+        return items
     }
 }
 

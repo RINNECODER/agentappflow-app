@@ -111,6 +111,49 @@ final class OnboardingFormStateTests: XCTestCase {
         XCTAssertEqual(formState.improvementMode, .propose)
     }
 
+    func testBootstrapPreviewPlanMatchesPythonBootstrapLayout() throws {
+        let repositoryURL = try makeGitRepository(named: "LegalPocketAI")
+        var formState = OnboardingFormState()
+        formState.projectName = "LegalPocketAI"
+        formState.projectPath = repositoryURL.path
+        formState.selectedAgentTools = [.codex, .claudeCode]
+
+        let previewPlan = BootstrapPreviewPlan(request: try formState.makeRequest())
+        let expectedItems = [
+            ".agentappflow/",
+            ".agentappflow/project.yaml",
+            ".agentappflow/rules/default.md",
+            ".agentappflow/templates/session.md",
+            ".agentappflow/templates/retro.md",
+            ".agentappflow/memory/",
+            ".agentappflow/sessions/",
+            ".agentappflow/retros/",
+            ".agentappflow/proposals/",
+            ".agentappflow/cache/",
+            "AGENTS.md",
+            "CLAUDE.md",
+        ]
+
+        XCTAssertEqual(previewPlan.treeItems, expectedItems)
+        XCTAssertEqual(previewPlan.createdItems, expectedItems)
+        XCTAssertFalse(previewPlan.treeItems.contains(".agentappflow/context/project-brief.md"))
+        XCTAssertFalse(previewPlan.treeItems.contains(".agentappflow/adapters/"))
+        XCTAssertFalse(previewPlan.treeItems.contains(".agentappflow/sessions/.gitkeep"))
+    }
+
+    func testBootstrapPreviewPlanOnlyIncludesSelectedAgentGuides() throws {
+        let repositoryURL = try makeGitRepository(named: "LegalPocketAI")
+        var formState = OnboardingFormState()
+        formState.projectName = "LegalPocketAI"
+        formState.projectPath = repositoryURL.path
+        formState.selectedAgentTools = [.codex]
+
+        let previewPlan = BootstrapPreviewPlan(request: try formState.makeRequest())
+
+        XCTAssertTrue(previewPlan.treeItems.contains("AGENTS.md"))
+        XCTAssertFalse(previewPlan.treeItems.contains("CLAUDE.md"))
+    }
+
     private func makeGitRepository(named name: String) throws -> URL {
         let directory = try makeDirectory(named: name)
         try FileManager.default.createDirectory(

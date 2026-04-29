@@ -252,7 +252,7 @@ final class DesignSystemComponentTests: XCTestCase {
                 agentTools: [.codex, .claudeCode],
                 approvalMode: .observe,
                 improvementMode: .propose,
-                createdItems: ["AGENTS.md", ".agentappflow/project.yaml", ".agentappflow/context/project-brief.md"],
+                createdItems: ["AGENTS.md", ".agentappflow/project.yaml", ".agentappflow/rules/default.md"],
                 skippedItems: index == 0 ? [".agentappflow/memory/index.json"] : [],
                 registeredAt: now.addingTimeInterval(TimeInterval(-86_400 * (index + 2))),
                 updatedAt: now.addingTimeInterval(TimeInterval(-600 * index)),
@@ -302,8 +302,8 @@ final class DesignSystemComponentTests: XCTestCase {
             sessions: sessions,
             frameworkHealth: [
                 FrameworkHealthItem(path: ".agentappflow/project.yaml", status: .present, detail: "Contract file detected."),
-                FrameworkHealthItem(path: ".agentappflow/context/project-brief.md", status: .present, detail: "Planner brief is available."),
-                FrameworkHealthItem(path: ".agentappflow/memory/index.json", status: .missing, detail: "Memory index still needs the next synthesis pass."),
+                FrameworkHealthItem(path: ".agentappflow/rules/default.md", status: .present, detail: "Default rules are available."),
+                FrameworkHealthItem(path: ".agentappflow/memory/", status: .missing, detail: "Memory directory still needs the next synthesis pass."),
             ],
             proposals: [
                 FrameworkProposal(
@@ -350,8 +350,14 @@ private let sampleBootstrapResult = BootstrapCommandResult(
     message: "ok",
     created: [
         ".agentappflow/project.yaml",
-        ".agentappflow/context/project-brief.md",
-        ".agentappflow/sessions/.gitkeep",
+        ".agentappflow/rules/default.md",
+        ".agentappflow/templates/session.md",
+        ".agentappflow/templates/retro.md",
+        ".agentappflow/memory/",
+        ".agentappflow/sessions/",
+        ".agentappflow/retros/",
+        ".agentappflow/proposals/",
+        ".agentappflow/cache/",
         "AGENTS.md",
         "CLAUDE.md",
     ],

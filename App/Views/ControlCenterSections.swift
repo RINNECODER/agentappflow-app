@@ -1,28 +1,4 @@
-import AppKit
 import SwiftUI
-
-struct ControlCenterEmptyStateView: View {
-    let presentSetup: () -> Void
-
-    var body: some View {
-        ZStack {
-            AppBackground()
-
-            AppCard(padding: AppTheme.Spacing.xxl, cornerRadius: AppTheme.Radius.xl, interactive: true) {
-                VStack(alignment: .leading, spacing: AppTheme.Spacing.lg) {
-                    AppBadge(status: .idle)
-                    Text("No projects registered")
-                        .font(AppTheme.Typography.display(34))
-                    Text("The control center is ready, but the sidebar has no workspaces yet. Register one repository to unlock session history, framework health, and proposal review.")
-                        .font(AppTheme.Typography.body(15, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                    AppButton("Start Onboarding", variant: .primary, action: presentSetup)
-                }
-            }
-            .frame(maxWidth: 680)
-        }
-    }
-}
 
 struct ActiveSessionBanner: View {
     let session: SessionRecord
