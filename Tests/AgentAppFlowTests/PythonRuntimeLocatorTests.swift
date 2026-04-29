@@ -52,10 +52,17 @@ final class PythonRuntimeLocatorTests: XCTestCase {
         XCTAssertNil(PythonRuntimeLocator.launchEnvironment(bundle: bundle)["PYTHONHOME"])
     }
 
-    func testLaunchEnvironmentIncludesRuntimeOverrideWhenProvided() {
-        let environment = PythonRuntimeLocator.launchEnvironment(runtimeOverridePath: "/tmp/Python3.framework")
+    func testLaunchEnvironmentIncludesRuntimeOverrideWhenProvided() throws {
+        let frameworkPath = try makeFakeFramework(executableName: "python3", pythonVersionOutput: "Python 3.11.8")
 
-        XCTAssertEqual(environment["AGENTAPPFLOW_PYTHON_FRAMEWORK_PATH"], "/tmp/Python3.framework")
+        let environment = PythonRuntimeLocator.launchEnvironment(runtimeOverridePath: frameworkPath.path)
+
+        XCTAssertEqual(environment["AGENTAPPFLOW_PYTHON_FRAMEWORK_PATH"], frameworkPath.path)
+        XCTAssertEqual(
+            environment["PYTHONHOME"],
+            frameworkPath.appendingPathComponent("Versions/Current").path
+        )
+        XCTAssertNil(environment["PYTHONPATH"])
     }
 
     func testLaunchEnvironmentOmitsRuntimeOverrideWhenBlank() {
@@ -65,21 +72,46 @@ final class PythonRuntimeLocatorTests: XCTestCase {
     }
 
     func testInspectUsesRuntimeOverrideFramework() throws {
-        let frameworkPath = try makeFakeFramework(executableName: "python3")
+        let frameworkPath = try makeFakeFramework(executableName: "python3", pythonVersionOutput: "Python 3.11.8")
         let executableURL = frameworkPath.appendingPathComponent("Versions/Current/bin/python3")
 
         let inspection = PythonRuntimeLocator.inspect(runtimeOverridePath: frameworkPath.path)
 
         XCTAssertEqual(inspection.interpreterPath, executableURL.path)
-        XCTAssertEqual(inspection.version, nil)
-        XCTAssertEqual(inspection.status, .missing)
-        XCTAssertEqual(inspection.source, .unavailable)
+        XCTAssertEqual(inspection.version, "Python 3.11.8")
+        XCTAssertEqual(inspection.status, .found)
+        XCTAssertEqual(inspection.source, .embedded)
+    }
+
+    func testInvalidRuntimeOverrideFallsBackToEmbeddedFramework() throws {
+        let bundleURL = try makeFakeBundle(
+            includeBootstrapScript: true,
+            includeEmbeddedPython: true,
+            pythonVersionOutput: "Python 3.11.8"
+        )
+        let bundle = try XCTUnwrap(Bundle(path: bundleURL.path))
+
+        let inspection = PythonRuntimeLocator.inspect(
+            runtimeOverridePath: "/tmp/not-a-framework",
+            bundle: bundle
+        )
+        let environment = PythonRuntimeLocator.hostLaunchEnvironment(
+            runtimeOverridePath: "/tmp/not-a-framework",
+            bundle: bundle
+        )
+
+        XCTAssertEqual(inspection.status, .found)
+        XCTAssertEqual(inspection.source, .embedded)
+        XCTAssertEqual(inspection.overridePath, "/tmp/not-a-framework")
+        XCTAssertNil(environment["AGENTAPPFLOW_PYTHON_FRAMEWORK_PATH"])
+        XCTAssertNil(environment["PYTHONHOME"])
     }
 
     private func makeFakeBundle(
         includeBootstrapScript: Bool,
         includeEmbeddedPython: Bool,
-        executableName: String = "python3"
+        executableName: String = "python3",
+        pythonVersionOutput: String? = nil
     ) throws -> URL {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
@@ -96,7 +128,11 @@ final class PythonRuntimeLocatorTests: XCTestCase {
         }
 
         if includeEmbeddedPython {
-            _ = try makeFakeFramework(at: frameworksURL, executableName: executableName)
+            _ = try makeFakeFramework(
+                at: frameworksURL,
+                executableName: executableName,
+                pythonVersionOutput: pythonVersionOutput
+            )
         }
 
         addTeardownBlock {
@@ -106,11 +142,18 @@ final class PythonRuntimeLocatorTests: XCTestCase {
         return rootURL
     }
 
-    private func makeFakeFramework(executableName: String) throws -> URL {
+    private func makeFakeFramework(
+        executableName: String,
+        pythonVersionOutput: String? = nil
+    ) throws -> URL {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
             .appendingPathComponent("Python3.framework", isDirectory: true)
-        let frameworkURL = try makeFakeFramework(at: rootURL.deletingLastPathComponent(), executableName: executableName)
+        let frameworkURL = try makeFakeFramework(
+            at: rootURL.deletingLastPathComponent(),
+            executableName: executableName,
+            pythonVersionOutput: pythonVersionOutput
+        )
 
         addTeardownBlock {
             try? FileManager.default.removeItem(at: rootURL.deletingLastPathComponent())
@@ -120,7 +163,11 @@ final class PythonRuntimeLocatorTests: XCTestCase {
     }
 
     @discardableResult
-    private func makeFakeFramework(at parentURL: URL, executableName: String) throws -> URL {
+    private func makeFakeFramework(
+        at parentURL: URL,
+        executableName: String,
+        pythonVersionOutput: String? = nil
+    ) throws -> URL {
         let frameworkURL = parentURL.appendingPathComponent("Python3.framework", isDirectory: true)
         let versionDirectory = frameworkURL
             .appendingPathComponent("Versions/Current", isDirectory: true)
@@ -138,7 +185,13 @@ final class PythonRuntimeLocatorTests: XCTestCase {
             at: interpreterURL.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
-        FileManager.default.createFile(atPath: interpreterURL.path, contents: Data())
+        let contents: Data
+        if let pythonVersionOutput {
+            contents = Data("#!/bin/sh\necho '\(pythonVersionOutput)'\n".utf8)
+        } else {
+            contents = Data()
+        }
+        FileManager.default.createFile(atPath: interpreterURL.path, contents: contents)
         try FileManager.default.setAttributes(
             [.posixPermissions: 0o755],
             ofItemAtPath: interpreterURL.path

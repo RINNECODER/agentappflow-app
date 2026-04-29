@@ -92,7 +92,14 @@ enum PythonRuntimeLocator {
     private static let hostPythonExecutableURL = URL(fileURLWithPath: "/usr/bin/env")
     private static let minimumSupportedVersion = (major: 3, minor: 10)
 
-    static func interpreterURL(bundle: Bundle = .main) throws -> URL {
+    static func interpreterURL(
+        runtimeOverridePath: String? = nil,
+        bundle: Bundle = .main
+    ) throws -> URL {
+        if let overrideInterpreter = runtimeOverrideInterpreterURL(runtimeOverridePath: runtimeOverridePath) {
+            return overrideInterpreter
+        }
+
         if let embeddedInterpreter = embeddedInterpreterURL(bundle: bundle) {
             return embeddedInterpreter
         }
@@ -103,13 +110,27 @@ enum PythonRuntimeLocator {
         scriptURL: URL,
         command: String,
         additionalArguments: [String],
+        runtimeOverridePath: String? = nil,
         bundle: Bundle = .main
     ) throws -> [String] {
-        if embeddedInterpreterURL(bundle: bundle) != nil {
-            return [scriptURL.path, command] + additionalArguments
+        if runtimeOverrideInterpreterURL(runtimeOverridePath: runtimeOverridePath) != nil
+            || embeddedInterpreterURL(bundle: bundle) != nil {
+            return directLaunchArguments(
+                scriptURL: scriptURL,
+                command: command,
+                additionalArguments: additionalArguments
+            )
         }
 
         return ["python3", scriptURL.path, command] + additionalArguments
+    }
+
+    static func directLaunchArguments(
+        scriptURL: URL,
+        command: String,
+        additionalArguments: [String]
+    ) -> [String] {
+        [scriptURL.path, command] + additionalArguments
     }
 
     static func launchEnvironment(bundle: Bundle = .main) -> [String: String] {
@@ -143,7 +164,7 @@ enum PythonRuntimeLocator {
         runtimeOverridePath: String?,
         bundle: Bundle = .main
     ) -> [String: String] {
-        launchEnvironment(runtimeOverridePath: runtimeOverridePath, bundle: bundle, useEmbeddedPythonHome: false)
+        launchEnvironment(runtimeOverridePath: nil, bundle: bundle, useEmbeddedPythonHome: false)
     }
 
     static func inspect(
@@ -152,15 +173,47 @@ enum PythonRuntimeLocator {
     ) -> PythonRuntimeInspection {
         let trimmedOverride = runtimeOverridePath?.trimmingCharacters(in: .whitespacesAndNewlines)
         if let trimmedOverride, !trimmedOverride.isEmpty {
-            return inspectRuntimeOverride(trimmedOverride)
+            let overrideInspection = inspectRuntimeOverride(trimmedOverride)
+            if overrideInspection.status == .found {
+                return overrideInspection
+            }
+
+            let fallbackInspection = inspectFallbackRuntime(bundle: bundle, overridePath: trimmedOverride)
+            if fallbackInspection.status == .found {
+                return fallbackInspection
+            }
+
+            return overrideInspection
         }
 
+        return inspectFallbackRuntime(bundle: bundle)
+    }
+
+    static func runtimeOverrideInterpreterURL(runtimeOverridePath: String?) -> URL? {
+        let trimmedOverride = runtimeOverridePath?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmedOverride, !trimmedOverride.isEmpty else {
+            return nil
+        }
+
+        let inspection = inspectRuntimeOverride(trimmedOverride)
+        guard inspection.status == .found, let interpreterPath = inspection.interpreterPath else {
+            return nil
+        }
+
+        return URL(fileURLWithPath: interpreterPath)
+    }
+
+    private static func inspectFallbackRuntime(
+        bundle: Bundle,
+        overridePath: String? = nil
+    ) -> PythonRuntimeInspection {
         if let embeddedInterpreter = embeddedInterpreterURL(bundle: bundle) {
             let version = pythonVersion(executableURL: embeddedInterpreter, arguments: ["--version"])
             return makeInspection(
                 source: .embedded,
                 interpreterPath: embeddedInterpreter.path,
-                version: version
+                version: version,
+                overridePath: overridePath
             )
         }
 
@@ -174,14 +227,15 @@ enum PythonRuntimeLocator {
                 source: .unavailable,
                 interpreterPath: nil,
                 version: nil,
-                overridePath: nil
+                overridePath: overridePath
             )
         }
 
         return makeInspection(
             source: .host,
             interpreterPath: hostInterpreterURL().path + " python3",
-            version: version
+            version: version,
+            overridePath: overridePath
         )
     }
 
@@ -194,15 +248,21 @@ enum PythonRuntimeLocator {
         environment["PYTHONNOUSERSITE"] = "1"
         environment["PYTHONDONTWRITEBYTECODE"] = "1"
         environment["PYTHONUNBUFFERED"] = "1"
+        environment.removeValue(forKey: "PYTHONPATH")
+        environment.removeValue(forKey: "PYTHONSTARTUP")
+        environment.removeValue(forKey: "PYTHONEXECUTABLE")
 
-        let trimmedOverride = runtimeOverridePath?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let trimmedOverride, !trimmedOverride.isEmpty {
-            environment[pythonFrameworkOverrideEnvKey] = trimmedOverride
+        let overrideInterpreter = runtimeOverrideInterpreterURL(runtimeOverridePath: runtimeOverridePath)
+        if let overrideInterpreter,
+           let overrideFrameworkURL = runtimeOverrideFrameworkURL(runtimeOverridePath) {
+            environment[pythonFrameworkOverrideEnvKey] = overrideFrameworkURL.path
         } else {
             environment.removeValue(forKey: pythonFrameworkOverrideEnvKey)
         }
 
-        if useEmbeddedPythonHome, let pythonHome = embeddedPythonHomeURL(bundle: bundle) {
+        if useEmbeddedPythonHome, let overrideInterpreter {
+            environment["PYTHONHOME"] = pythonHomeURL(for: overrideInterpreter).path
+        } else if useEmbeddedPythonHome, let pythonHome = embeddedPythonHomeURL(bundle: bundle) {
             environment["PYTHONHOME"] = pythonHome.path
         } else {
             environment.removeValue(forKey: "PYTHONHOME")
@@ -212,7 +272,15 @@ enum PythonRuntimeLocator {
     }
 
     private static func inspectRuntimeOverride(_ frameworkPath: String) -> PythonRuntimeInspection {
-        let frameworkURL = URL(fileURLWithPath: frameworkPath, isDirectory: true)
+        guard let frameworkURL = runtimeOverrideFrameworkURL(frameworkPath) else {
+            return PythonRuntimeInspection(
+                status: .missing,
+                source: .unavailable,
+                interpreterPath: frameworkPath,
+                version: nil,
+                overridePath: frameworkPath
+            )
+        }
         let currentVersionBinDirectory = frameworkURL.appendingPathComponent("Versions/Current/bin", isDirectory: true)
 
         let interpreterURL = executableInBinDirectory(currentVersionBinDirectory)
@@ -223,9 +291,9 @@ enum PythonRuntimeLocator {
             return PythonRuntimeInspection(
                 status: .missing,
                 source: .unavailable,
-                interpreterPath: frameworkPath,
+                interpreterPath: frameworkURL.path,
                 version: nil,
-                overridePath: frameworkPath
+                overridePath: frameworkURL.path
             )
         }
 
@@ -234,7 +302,7 @@ enum PythonRuntimeLocator {
             source: .embedded,
             interpreterPath: interpreterURL.path,
             version: version,
-            overridePath: frameworkPath
+            overridePath: frameworkURL.path
         )
     }
 
@@ -286,6 +354,10 @@ enum PythonRuntimeLocator {
             return nil
         }
 
+        return pythonHomeURL(for: interpreterURL)
+    }
+
+    private static func pythonHomeURL(for interpreterURL: URL) -> URL {
         if interpreterURL.lastPathComponent == "Python3" || interpreterURL.lastPathComponent == "Python" {
             return interpreterURL.deletingLastPathComponent()
         }
@@ -293,6 +365,30 @@ enum PythonRuntimeLocator {
         return interpreterURL
             .deletingLastPathComponent()
             .deletingLastPathComponent()
+    }
+
+    private static func runtimeOverrideFrameworkURL(_ runtimeOverridePath: String?) -> URL? {
+        let trimmedPath = runtimeOverridePath?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmedPath, !trimmedPath.isEmpty else {
+            return nil
+        }
+
+        let expandedPath = NSString(string: trimmedPath).expandingTildeInPath
+        guard expandedPath.hasPrefix("/") else {
+            return nil
+        }
+
+        let frameworkURL = URL(fileURLWithPath: expandedPath, isDirectory: true).standardizedFileURL
+        guard ["Python3.framework", "Python.framework"].contains(frameworkURL.lastPathComponent) else {
+            return nil
+        }
+
+        let resourceValues = try? frameworkURL.resourceValues(forKeys: [.isDirectoryKey])
+        guard resourceValues?.isDirectory == true else {
+            return nil
+        }
+
+        return frameworkURL
     }
 
     private static func executableInBinDirectory(_ binDirectory: URL) -> URL? {

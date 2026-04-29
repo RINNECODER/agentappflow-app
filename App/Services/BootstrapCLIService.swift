@@ -47,7 +47,9 @@ final class BootstrapCLIService {
             let scriptURL = try Self.bootstrapScriptURL()
             let payload = try encoder.encode(request)
             try payload.write(to: tempFileURL)
-            let executableURL = try PythonRuntimeLocator.interpreterURL()
+            let executableURL = try PythonRuntimeLocator.interpreterURL(
+                runtimeOverridePath: self.pythonFrameworkOverride
+            )
 
             let process = Process()
             let stdoutPipe = Pipe()
@@ -56,8 +58,9 @@ final class BootstrapCLIService {
             process.executableURL = executableURL
             process.arguments = try PythonRuntimeLocator.launchArguments(
                 scriptURL: scriptURL,
-                command: "bootstrap_project",
-                additionalArguments: ["--input", tempFileURL.path] + (force ? ["--force"] : [])
+                command: "bootstrap",
+                additionalArguments: ["--input", tempFileURL.path] + (force ? ["--force"] : []),
+                runtimeOverridePath: self.pythonFrameworkOverride
             )
             process.standardOutput = stdoutPipe
             process.standardError = stderrPipe

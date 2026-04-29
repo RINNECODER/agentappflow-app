@@ -116,7 +116,7 @@ private enum RuntimeJSON {
 
     static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = RuntimeDateCoding.dateDecodingStrategy
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return decoder
     }()
@@ -206,8 +206,7 @@ private actor AgentRuntimeManager {
                 return socketPath
             }
 
-            let stderr = drainCurrentStderrOutput()
-            stopRuntime()
+            let stderr = terminateCurrentRuntimeAndDrainStderr()
             failureMessages.append(
                 stderr.isEmpty
                     ? "\(attempt.name): no response from local runtime"
@@ -228,6 +227,21 @@ private actor AgentRuntimeManager {
         let additionalArguments = ["--socket", socketPath]
         var attempts: [RuntimeLaunchAttempt] = []
 
+        if let overrideInterpreter = PythonRuntimeLocator.runtimeOverrideInterpreterURL(runtimeOverridePath: pythonFrameworkOverride) {
+            attempts.append(
+                RuntimeLaunchAttempt(
+                    name: "configured python framework",
+                    executableURL: overrideInterpreter,
+                    arguments: PythonRuntimeLocator.directLaunchArguments(
+                        scriptURL: scriptURL,
+                        command: "serve",
+                        additionalArguments: additionalArguments
+                    ),
+                    environment: PythonRuntimeLocator.launchEnvironment(runtimeOverridePath: pythonFrameworkOverride)
+                )
+            )
+        }
+
         if let embeddedInterpreter = PythonRuntimeLocator.embeddedInterpreterURL() {
             attempts.append(
                 RuntimeLaunchAttempt(
@@ -238,7 +252,7 @@ private actor AgentRuntimeManager {
                         command: "serve",
                         additionalArguments: additionalArguments
                     ),
-                    environment: PythonRuntimeLocator.launchEnvironment(runtimeOverridePath: pythonFrameworkOverride)
+                    environment: PythonRuntimeLocator.launchEnvironment()
                 )
             )
         }
@@ -271,19 +285,43 @@ private actor AgentRuntimeManager {
 
     private func stopRuntime() {
         process?.terminationHandler = nil
-        if process?.isRunning == true {
-            process?.terminate()
-            process?.waitUntilExit()
+        if let process, process.isRunning {
+            terminate(process)
         }
         process = nil
         stderrPipe = nil
     }
 
-    private func drainCurrentStderrOutput() -> String {
-        guard let stderrPipe else { return "" }
+    private func terminateCurrentRuntimeAndDrainStderr() -> String {
+        process?.terminationHandler = nil
+        if let process, process.isRunning {
+            terminate(process)
+        }
+
+        guard let stderrPipe else {
+            process = nil
+            return ""
+        }
         let data = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+        process = nil
+        self.stderrPipe = nil
         guard !data.isEmpty else { return "" }
         return String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func terminate(_ process: Process) {
+        process.terminate()
+
+        let deadline = Date().addingTimeInterval(2)
+        while process.isRunning, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+
+        if process.isRunning {
+            kill(process.processIdentifier, SIGKILL)
+        }
+
+        process.waitUntilExit()
     }
 
     private func removeStaleSocket(at path: String) throws {
@@ -305,7 +343,7 @@ private actor AgentRuntimeManager {
                 JSONRPCResponse<RuntimeHealth>.self,
                 from: responseData
             )
-            return response.result?.status == "ok"
+            return response.result?.isResponsive == true
         } catch {
             return false
         }

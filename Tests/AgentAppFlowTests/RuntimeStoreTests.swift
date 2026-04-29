@@ -34,7 +34,7 @@ final class RuntimeStoreTests: XCTestCase {
         """
 
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = RuntimeDateCoding.dateDecodingStrategy
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let projects = try decoder.decode(ProjectListPayload.self, from: Data(payload.utf8)).projects
 
@@ -42,6 +42,72 @@ final class RuntimeStoreTests: XCTestCase {
         XCTAssertEqual(projects.first?.platforms, [.ios, .macos])
         XCTAssertEqual(projects.first?.agentTools, [.codex, .claudeCode])
         XCTAssertEqual(projects.first?.sessionCount, 1)
+    }
+
+    func testProjectListPayloadDecodesBareRuntimeArray() throws {
+        let payload = """
+        [
+          {
+            "id": "project-1",
+            "project_name": "LegalPocketAI",
+            "project_description": "AI legal assistant for contract review.",
+            "project_path": "/tmp/LegalPocketAI",
+            "project_type": "ios_app",
+            "platforms": ["ios", "macos"],
+            "agent_tools": ["codex", "claude_code"],
+            "approval_mode": "propose",
+            "improvement_mode": "propose",
+            "created_items": ["AGENTS.md"],
+            "skipped_items": [],
+            "registered_at": "2026-03-31T20:00:00.123456+00:00",
+            "updated_at": "2026-03-31T20:00:00.123456+00:00",
+            "last_bootstrapped_at": "2026-03-31T20:00:00.123456+00:00",
+            "session_count": 1
+          }
+        ]
+        """
+
+        let projects = try runtimeDecoder().decode(ProjectListPayload.self, from: Data(payload.utf8)).projects
+
+        XCTAssertEqual(projects.count, 1)
+        let project = try XCTUnwrap(projects.first)
+        XCTAssertEqual(project.projectName, "LegalPocketAI")
+        XCTAssertEqual(project.registeredAt.timeIntervalSince1970, 1_774_987_200.123456, accuracy: 0.001)
+    }
+
+    func testRegisteredProjectPayloadDecodesRawRuntimeProject() throws {
+        let payload = """
+        {
+          "id": "project-1",
+          "project_name": "LegalPocketAI",
+          "project_description": "AI legal assistant for contract review.",
+          "project_path": "/tmp/LegalPocketAI",
+          "project_type": "ios_app",
+          "platforms": ["ios"],
+          "agent_tools": ["codex"],
+          "approval_mode": "propose",
+          "improvement_mode": "propose",
+          "created_items": [],
+          "skipped_items": [],
+          "registered_at": "2026-03-31T20:00:00.123456+00:00",
+          "updated_at": "2026-03-31T20:00:00.123456+00:00",
+          "last_bootstrapped_at": "2026-03-31T20:00:00.123456+00:00",
+          "session_count": 0
+        }
+        """
+
+        let project = try runtimeDecoder().decode(RegisteredProjectPayload.self, from: Data(payload.utf8)).project
+
+        XCTAssertEqual(project.id, "project-1")
+        XCTAssertEqual(project.sessionCount, 0)
+        XCTAssertEqual(project.registeredAt.timeIntervalSince1970, 1_774_987_200.123456, accuracy: 0.001)
+    }
+
+    func testDegradedRuntimeHealthIsResponsive() {
+        let health = RuntimeHealth(status: "degraded", version: "0.2.0")
+
+        XCTAssertFalse(health.isHealthy)
+        XCTAssertTrue(health.isResponsive)
     }
 
     func testStoreLoadsProjectsAndSelectsPreferredProject() async {
@@ -417,6 +483,13 @@ final class RuntimeStoreTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defaults.removePersistentDomain(forName: suiteName)
         return defaults
+    }
+
+    private func runtimeDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = RuntimeDateCoding.dateDecodingStrategy
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return decoder
     }
 }
 

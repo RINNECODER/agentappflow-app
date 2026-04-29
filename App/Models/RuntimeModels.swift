@@ -1,5 +1,40 @@
 import Foundation
 
+enum RuntimeDateCoding {
+    static let dateDecodingStrategy: JSONDecoder.DateDecodingStrategy = .custom { decoder in
+        let container = try decoder.singleValueContainer()
+
+        if let timestamp = try? container.decode(Double.self) {
+            return Date(timeIntervalSince1970: timestamp)
+        }
+
+        let value = try container.decode(String.self)
+        for formatter in iso8601Formatters {
+            if let date = formatter.date(from: value) {
+                return date
+            }
+        }
+
+        throw DecodingError.dataCorruptedError(
+            in: container,
+            debugDescription: "Expected an ISO-8601 date string."
+        )
+    }
+
+    private static let iso8601Formatters: [ISO8601DateFormatter] = [
+        {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return formatter
+        }(),
+        {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime]
+            return formatter
+        }(),
+    ]
+}
+
 struct RuntimeSubsystemHealth: Decodable, Equatable {
     let name: String
     let status: String
@@ -27,6 +62,10 @@ struct RuntimeHealth: Decodable, Equatable {
 
     var isHealthy: Bool {
         status.lowercased() == "ok"
+    }
+
+    var isResponsive: Bool {
+        ["ok", "degraded"].contains(status.lowercased())
     }
 
     var hasDegradedSubsystems: Bool {
@@ -451,10 +490,46 @@ struct ProjectDetail: Decodable, Equatable {
 
 struct ProjectListPayload: Decodable, Equatable {
     let projects: [RegisteredProject]
+
+    init(projects: [RegisteredProject]) {
+        self.projects = projects
+    }
+
+    init(from decoder: Decoder) throws {
+        if let projects = try? [RegisteredProject].init(from: decoder) {
+            self.init(projects: projects)
+            return
+        }
+
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(projects: try container.decode([RegisteredProject].self, forKey: .projects))
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case projects
+    }
 }
 
 struct RegisteredProjectPayload: Decodable, Equatable {
     let project: RegisteredProject
+
+    init(project: RegisteredProject) {
+        self.project = project
+    }
+
+    init(from decoder: Decoder) throws {
+        if let project = try? RegisteredProject(from: decoder) {
+            self.init(project: project)
+            return
+        }
+
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(project: try container.decode(RegisteredProject.self, forKey: .project))
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case project
+    }
 }
 
 struct SessionRecordPayload: Decodable, Equatable {
