@@ -61,6 +61,8 @@ Core fields:
 - `memory_mode`
 - `improvement_mode`
 
+`tech_stack.execution: rust` records the planned guarded-executor boundary for the project framework. It is not active enforcement in the current Swift/Python runtime milestone.
+
 ## Canonical vs Derived State
 
 Canonical state should stay human-readable and live in version-controlled repo paths when appropriate:

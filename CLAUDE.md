@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 python3 -m pytest python/tests
 ```
+These tests expect `git` to resolve to a usable local Git binary because bootstrap validation shells out to `git`.
 
 **If Swift files, `project.yml`, or `.pbxproj` change:**
 ```bash
@@ -44,17 +45,18 @@ AgentAppFlow is a **local-first macOS control center** for project-aware AI deve
 - Does **not** implement agent cognition or direct repository mutations.
 - Communicates with the Python runtime over a **Unix domain socket** using JSON-RPC 2.0.
 - Key services: `AgentRuntimeService` (process lifecycle + JSON-RPC client), `AppRuntimeStore` (ObservableObject state), `PythonRuntimeLocator` (finds `Python3.framework`), `BootstrapCLIService` (orchestrates project init).
-- `Python3.framework` is embedded in the app bundle via `scripts/embed_python_runtime.sh` (a post-build Xcode phase). Override the framework path with `AGENTAPPFLOW_PYTHON_FRAMEWORK_PATH`.
+- `Python3.framework` is embedded in the app bundle via `scripts/embed_python_runtime.sh` (a post-build Xcode phase). Override the framework path with `AGENTAPPFLOW_PYTHON_FRAMEWORK_PATH`; if no usable embedded or override framework is available, runtime launch can fall back to host `python3`.
 
 ### 2. Python Core (AI Orchestration)
 - Entry point: `python/agentappflow_bootstrap.py` with `bootstrap_project` and `serve` subcommands.
-- `agentappflow_core/runtime.py` — JSON-RPC dispatcher (`AgentAppFlowRuntime`); socket server via `run_runtime_server()`. Runtime version: 0.2.0.
+- `agentappflow_core/runtime.py` — JSON-RPC dispatcher (`AgentAppFlowRuntime`); socket server via `run_runtime_server()`. Runtime version: 0.4.0.
 - `agentappflow_core/bootstrap.py` — Creates and validates the `.agentappflow/` directory structure in a project.
 - `agentappflow_core/storage.py` — `ProjectRegistry` and `SessionRegistry` backed by local Application Support directory.
 
 ### 3. Rust Executor (Deferred — Phase 2+)
 - Will own command execution policy, filesystem mutation guardrails, diff validation, and audit logging.
 - Will communicate with Python via JSON over stdio per invocation.
+- Not active in the current Swift/Python runtime slice; bootstrap framework files are written by Python.
 
 ### IPC
 - Swift ↔ Python: Unix domain socket, JSON-RPC 2.0.

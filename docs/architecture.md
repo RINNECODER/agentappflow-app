@@ -2,7 +2,7 @@
 
 ## Summary
 
-`agentappflow-app` is the primary product repo for AgentAppFlow. The product is Mac-first in UX, local-only in execution, Python-first for AI cognition, and Rust-enforced for privileged operations.
+`agentappflow-app` is the primary product repo for AgentAppFlow. The product is Mac-first in UX, local-only in execution, Python-first for AI cognition, and designed to add Rust enforcement for privileged operations in a later executor milestone.
 
 The app does not depend on a hosted backend. User projects keep their framework state in a visible `.agentappflow/` directory so the project contract is inspectable, portable, and discoverable by local AI agents.
 
@@ -30,7 +30,8 @@ Responsibilities:
 - task retrospectives and framework update proposals
 - HyperAgent-inspired internal role coordination
 
-The Python core is the AI brain. It owns the high-level workflow, but it must not bypass Rust for guarded writes or privileged command execution.
+The Python core is the AI brain. It owns the high-level workflow. In the current milestone, the Rust boundary is not active yet, so Python directly creates the repo-local `.agentappflow/` framework files during bootstrap.
+After the Rust executor lands, guarded writes and privileged command execution should route through that boundary.
 
 ### Rust executor
 
@@ -41,6 +42,7 @@ Responsibilities:
 - future sandboxed execution of sensitive operations
 
 Rust is the trust boundary for risky local actions. It validates requests, executes or rejects them, and returns structured execution metadata.
+This executor is planned/deferred, not part of the active Swift/Python runtime slice.
 
 ## Inter-Process Communication
 
@@ -54,8 +56,9 @@ Rust is the trust boundary for risky local actions. It validates requests, execu
 
 - transport: JSON over stdio per invocation
 - purpose: request policy-checked execution, guarded file writes, command runs, and audit metadata
+- status: planned/deferred; the current bootstrap path writes framework files from Python
 
-This split keeps the UI responsive, the AI runtime flexible, and the enforcement layer narrow and testable.
+This split keeps the UI responsive, the AI runtime flexible, and the planned enforcement layer narrow and testable.
 
 ## Local-Only Service Commands
 
@@ -128,7 +131,7 @@ In `auto`, the system may update only framework-owned paths inside `.agentappflo
 The current executable slice upgrades the bootstrap-only shell into a local runtime foundation:
 
 - Swift launches and talks to the Python core over JSON-RPC on a Unix domain socket.
-- The macOS app bundles its own `Python3.framework` and launches that embedded interpreter for runtime calls instead of relying on a user-installed `python3`.
+- The macOS app prefers its bundled `Python3.framework` for runtime calls and can use `AGENTAPPFLOW_PYTHON_FRAMEWORK_PATH` as an override. If neither framework path is usable, runtime launch can fall back to host `python3`.
 - Python owns a small local registry for registered projects and session metadata under the user's Application Support directory.
 - Onboarding bootstraps a repo and then registers it with the runtime instead of persisting a one-off Swift snapshot.
 - The control center reads runtime-backed project and session state and restores the last selected project through the runtime.
