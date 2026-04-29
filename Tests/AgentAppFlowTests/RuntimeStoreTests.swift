@@ -104,7 +104,7 @@ final class RuntimeStoreTests: XCTestCase {
     }
 
     func testDegradedRuntimeHealthIsResponsive() {
-        let health = RuntimeHealth(status: "degraded", version: "0.2.0")
+        let health = RuntimeHealth(status: "degraded", version: "0.4.0")
 
         XCTAssertFalse(health.isHealthy)
         XCTAssertTrue(health.isResponsive)
@@ -198,7 +198,7 @@ final class RuntimeStoreTests: XCTestCase {
         )
         service.healthCheckResult = RuntimeHealth(
             status: "degraded",
-            version: "0.2.0",
+            version: "0.4.0",
             subsystems: [
                 RuntimeSubsystemHealth(name: "process", status: "ok", detail: "Runtime process is alive."),
                 RuntimeSubsystemHealth(name: "sessionPipeline", status: "degraded", detail: "Session storage unavailable."),
@@ -501,7 +501,7 @@ private final class MockRuntimeService: AgentRuntimeServing {
     var healthCheckError: Error?
     var healthCheckResult = RuntimeHealth(
         status: "ok",
-        version: "0.2.0",
+        version: "0.4.0",
         subsystems: [
             RuntimeSubsystemHealth(name: "process", status: "ok", detail: "Runtime process is alive."),
             RuntimeSubsystemHealth(name: "sessionPipeline", status: "ok", detail: "Session storage is writable."),

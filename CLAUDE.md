@@ -48,7 +48,7 @@ AgentAppFlow is a **local-first macOS control center** for project-aware AI deve
 - `Python3.framework` is embedded in the app bundle via `scripts/embed_python_runtime.sh` (a post-build Xcode phase). Override the framework path with `AGENTAPPFLOW_PYTHON_FRAMEWORK_PATH`; if no usable embedded or override framework is available, runtime launch can fall back to host `python3`.
 
 ### 2. Python Core (AI Orchestration)
-- Entry point: `python/agentappflow_bootstrap.py` with `bootstrap_project` and `serve` subcommands.
+- Entry point: `python/agentappflow_bootstrap.py` with `bootstrap` and `serve` subcommands; the JSON-RPC runtime method remains `bootstrap_project`.
 - `agentappflow_core/runtime.py` — JSON-RPC dispatcher (`AgentAppFlowRuntime`); socket server via `run_runtime_server()`. Runtime version: 0.4.0.
 - `agentappflow_core/bootstrap.py` — Creates and validates the `.agentappflow/` directory structure in a project.
 - `agentappflow_core/storage.py` — `ProjectRegistry` and `SessionRegistry` backed by local Application Support directory.

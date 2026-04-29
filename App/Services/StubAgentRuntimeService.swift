@@ -274,10 +274,10 @@ final class StubAgentRuntimeService: AgentRuntimeServing {
         let proposal = FrameworkProposal(
             title: "Refresh framework contracts",
             summary: "Re-run bootstrap templates to align AGENTS and runtime contracts with the latest local phase.",
-            filePath: ".agentappflow/context/project-brief.md",
+            filePath: ".agentappflow/rules/default.md",
             createdAt: now,
             changeSummary: [
-                "Refresh the project brief with the latest stack summary.",
+                "Refresh the default rules with the latest stack summary.",
                 "Rewrite bootstrap metadata to match the current approval defaults.",
             ]
         )
@@ -551,8 +551,13 @@ final class StubAgentRuntimeService: AgentRuntimeServing {
     private func seedFrameworkHealth(projectPath: String, createdItems: [String]) -> [FrameworkHealthItem] {
         let requiredPaths = [
             ".agentappflow/project.yaml": "Project contract registered for the runtime.",
-            ".agentappflow/context/project-brief.md": "Project brief available to planner and navigator roles.",
-            ".agentappflow/sessions/.gitkeep": "Session ledger directory initialized.",
+            ".agentappflow/rules/default.md": "Default rules available to planner and navigator roles.",
+            ".agentappflow/templates/session.md": "Session template available for agent runs.",
+            ".agentappflow/templates/retro.md": "Retro template available for post-run capture.",
+            ".agentappflow/sessions/": "Session ledger directory initialized.",
+            ".agentappflow/retros/": "Retrospective directory initialized.",
+            ".agentappflow/proposals/": "Proposal queue directory initialized.",
+            ".agentappflow/cache/": "Local framework cache directory initialized.",
             "AGENTS.md": "Repo-specific agent instructions detected.",
             "CLAUDE.md": "Claude-specific behavior contract available.",
             ".agentappflow/memory/index.json": "Memory index is still pending the first runtime synthesis.",

@@ -30,6 +30,7 @@
 		A621F2F6B722FF1D85242C22 /* storage.py in Resources */ = {isa = PBXBuildFile; fileRef = 9F07E39D9A1A9384C53E81D5 /* storage.py */; };
 		B73DF6D179B387C42E8CEF76 /* AppComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16BBF2E8991B9ED1446356D3 /* AppComponents.swift */; };
 		BD912A1C99D6083D5E28F97B /* DesignSystemComponentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 727022AE0368A1C325F61098 /* DesignSystemComponentTests.swift */; };
+		CC1EC5F93580130C2950DD13 /* ControlCenterSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECDB044200953D3D21502C1C /* ControlCenterSections.swift */; };
 		D30B002DD4581B210076FA66 /* PythonRuntimeLocator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1B0F1612AD904A2ACA9B1F1 /* PythonRuntimeLocator.swift */; };
 		D3F624E6966BC7500446FFD2 /* AgentAppFlowApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B70FFE26FBEB7485DCF1FA4E /* AgentAppFlowApp.swift */; };
 		DEFEB631B2384B0B6A731C1A /* BootstrapRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6EAE11AFAF0DB2F22B94F38 /* BootstrapRequest.swift */; };
@@ -80,6 +81,7 @@
 		DD5DEA93ABBC065E5D3C12AE /* AppRuntimeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRuntimeStore.swift; sourceTree = "<group>"; };
 		E1B0F1612AD904A2ACA9B1F1 /* PythonRuntimeLocator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PythonRuntimeLocator.swift; sourceTree = "<group>"; };
 		E329E5EBAC82AD4996D0D918 /* RuntimeStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeStoreTests.swift; sourceTree = "<group>"; };
+		ECDB044200953D3D21502C1C /* ControlCenterSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlCenterSections.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -175,6 +177,7 @@
 			isa = PBXGroup;
 			children = (
 				9BF70716BAF3392531C4FE27 /* AppPreferencesView.swift */,
+				ECDB044200953D3D21502C1C /* ControlCenterSections.swift */,
 				915655C8CBDBA93D5286E385 /* ControlCenterView.swift */,
 				584FFA286F553CA01576FB65 /* FirstRunSetupView.swift */,
 				75CF20D7A16CBA779F111943 /* ThemeModePicker.swift */,
@@ -341,6 +344,7 @@
 				8A60A10F834EAC5A08CC5C0B /* BootstrapCLIService.swift in Sources */,
 				DEFEB631B2384B0B6A731C1A /* BootstrapRequest.swift in Sources */,
 				945B1F8F2D124CEA5BD828B4 /* ContentView.swift in Sources */,
+				CC1EC5F93580130C2950DD13 /* ControlCenterSections.swift in Sources */,
 				F865971570C92EB8202A8389 /* ControlCenterView.swift in Sources */,
 				8340FEAB1594781DEE22E7F0 /* FirstRunSetupView.swift in Sources */,
 				A27ACEDE4E7DF23D175EDC6A /* NavigationShell.swift in Sources */,
